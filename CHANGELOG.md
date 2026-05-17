@@ -1,3 +1,9 @@
+## [1.0.2](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.1...v1.0.2) (2026-05-17)
+
+### Bug Fixes
+
+* suppress py_mini_racer pkg_resources deprecation warning ([857f790](https://github.com/alexhaller/Mova-Mower_HA/commit/857f790b51c06216bb671fdbc7c41fe82b520cf7))
+
 ## [1.0.1](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.0...v1.0.1) (2026-05-17)
 
 ### Bug Fixes
