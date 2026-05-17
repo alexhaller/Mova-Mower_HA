@@ -1,3 +1,9 @@
+## 1.0.0 (2026-05-17)
+
+### Bug Fixes
+
+* correct copyright year to 2026 ([aae612c](https://github.com/alexhaller/Mova-Mower_HA/commit/aae612c8548fd6a6594ea8ccdacbe0df3c91b3bf))
+
 # Changelog
 
 All notable changes to this project will be documented in this file.
