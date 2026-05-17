@@ -4,7 +4,7 @@ from __future__ import annotations
 import math
 import json
 import time
-from typing import Any, Dict, Final, List, Optional
+from typing import Any, Final
 from enum import IntEnum, Enum
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -1480,7 +1480,7 @@ class Point:
             and self.a == other.a
         )
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         if self.a is None:
             return {ATTR_X: self.x, ATTR_Y: self.y}
         return {ATTR_X: self.x, ATTR_Y: self.y, ATTR_A: self.a}
@@ -1530,7 +1530,7 @@ class Path(Point):
         super().__init__(x, y)
         self.path_type = path_type
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         attributes = {**super().as_dict()}
         if self.path_type:
             attributes[ATTR_TYPE] = self.path_type.value
@@ -1614,7 +1614,7 @@ class Obstacle(Point):
                 else:
                     self.segment = map_data.segments[obstacle_pixel].name
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         attributes = super().as_dict()
         attributes[ATTR_TYPE] = self.type.name.replace("_", " ").title()
         if self.possibility is not None:
@@ -1671,7 +1671,7 @@ class Zone:
     def __repr__(self) -> str:
         return self.__str__()
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {ATTR_X0: self.x0, ATTR_Y0: self.y0, ATTR_X1: self.x1, ATTR_Y1: self.y1}
 
     def as_area(self) -> Area:
@@ -1697,18 +1697,18 @@ class Segment(Zone):
     def __init__(
         self,
         segment_id: int,
-        x0: Optional[float] = None,
-        y0: Optional[float] = None,
-        x1: Optional[float] = None,
-        y1: Optional[float] = None,
-        x: Optional[int] = None,
-        y: Optional[int] = None,
+        x0: float | None = None,
+        y0: float | None = None,
+        x1: float | None = None,
+        y1: float | None = None,
+        x: int | None = None,
+        y: int | None = None,
         name: str = None,
         custom_name: str = None,
         index: int = 0,
         type: int = 0,
         icon: str = None,
-        neighbors: List[int] = [],
+        neighbors: list[int] = [],
         cleaning_times: int = None,
         cleaning_mode: int = None,
         order: int = None,
@@ -1736,7 +1736,7 @@ class Segment(Zone):
         self.set_name()
 
     @property
-    def outline(self) -> List[List[int]]:
+    def outline(self) -> list[list[int]]:
         return [
             [self.x0, self.y0],
             [self.x0, self.y1],
@@ -1745,7 +1745,7 @@ class Segment(Zone):
         ]
 
     @property
-    def center(self) -> List[int]:
+    def center(self) -> list[int]:
         return [self.x, self.y]
 
     @property
@@ -1801,8 +1801,8 @@ class Segment(Zone):
 
         return {v: k for k, v in list.items()}
 
-    def as_dict(self) -> Dict[str, Any]:
-        attributes = {**super(Segment, self).as_dict()}
+    def as_dict(self) -> dict[str, Any]:
+        attributes = {**super().as_dict()}
         if self.segment_id:
             attributes[ATTR_ZONE_ID] = self.segment_id
         if self.name is not None:
@@ -1898,7 +1898,7 @@ class Wall:
     def __repr__(self) -> str:
         return self.__str__()
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {ATTR_X0: self.x0, ATTR_Y0: self.y0, ATTR_X1: self.x1, ATTR_Y1: self.y1}
 
     def to_img(self, image_dimensions, offset=True) -> Wall:
@@ -1911,7 +1911,7 @@ class Wall:
         p1 = Point(self.x1, self.y1).to_coord(image_dimensions, offset)
         return Wall(p0.x, p0.y, p1.x, p1.y)
 
-    def as_list(self) -> List[float]:
+    def as_list(self) -> list[float]:
         return [self.x0, self.y0, self.x1, self.y1]
 
 
@@ -1955,7 +1955,7 @@ class Area:
     def __repr__(self) -> str:
         return self.__str__()
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         return {
             ATTR_X0: self.x0,
             ATTR_Y0: self.y0,
@@ -1967,7 +1967,7 @@ class Area:
             ATTR_Y3: self.y3,
         }
 
-    def as_list(self) -> List[float]:
+    def as_list(self) -> list[float]:
         return [self.x0, self.y0, self.x1, self.y1, self.x2, self.y2, self.x3, self.y3]
 
     def to_img(self, image_dimensions, offset=True) -> Area:
@@ -2045,7 +2045,7 @@ class Furniture(Point):
         self.furniture_id = furniture_id
         self.segment_id = segment_id
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         attributes = super().as_dict()
         attributes[ATTR_TYPE] = self.type.name.replace("_", " ").title()
         if self.x0 is not None and self.y0 is not None:
@@ -2092,7 +2092,7 @@ class Coordinate(Point):
         self.type = type
         self.completed = completed
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         attributes = {**super().as_dict()}
         if self.type is not None:
             attributes[ATTR_TYPE] = self.type
@@ -2182,7 +2182,7 @@ class CleaningHistory:
         self.multiple_cleaning_time: str = None
         self.pet_focused_cleaning: int = None
         self.task_interrupt_reason: TaskInterruptReason = None
-        self.neglected_segments: Dict[int, int] = None
+        self.neglected_segments: dict[int, int] = None
         self.clean_again: int = None
 
         for history_data_item in history_data:
@@ -2340,123 +2340,123 @@ class TaskEndType(IntEnum):
 
 class MapDataPartial:
     def __init__(self) -> None:
-        self.map_id: Optional[int] = None  # Map header: map_id
-        self.frame_id: Optional[int] = None  # Map header: frame_id
-        self.frame_type: Optional[int] = None  # Map header: frame_type
-        self.timestamp_ms: Optional[int] = None  # Data json: timestamp_ms
-        self.raw: Optional[bytes] = None  # Unzipped raw map
-        self.data_json: Optional[object] = {}  # Data json
+        self.map_id: int | None = None  # Map header: map_id
+        self.frame_id: int | None = None  # Map header: frame_id
+        self.frame_type: int | None = None  # Map header: frame_type
+        self.timestamp_ms: int | None = None  # Data json: timestamp_ms
+        self.raw: bytes | None = None  # Unzipped raw map
+        self.data_json: object | None = {}  # Data json
 
 
 class MapData:
     def __init__(self) -> None:
         # Header
-        self.map_id: Optional[int] = None  # Map header: map_id
-        self.frame_id: Optional[int] = None  # Map header: frame_id
-        self.frame_type: Optional[int] = None  # Map header: frame_type
+        self.map_id: int | None = None  # Map header: map_id
+        self.frame_id: int | None = None  # Map header: frame_id
+        self.frame_type: int | None = None  # Map header: frame_type
         # Map header: robot x, robot y, robot angle
-        self.robot_position: Optional[Point] = None
+        self.robot_position: Point | None = None
         # Map header: charger x, charger y, charger angle
-        self.charger_position: Optional[Point] = None
-        self.optimized_charger_position: Optional[Point] = None
-        self.router_position: Optional[Point] = None  # Data json: whmp
+        self.charger_position: Point | None = None
+        self.optimized_charger_position: Point | None = None
+        self.router_position: Point | None = None  # Data json: whmp
         # Map header: top, left, height, width, grid_size
-        self.dimensions: Optional[MapImageDimensions] = None
-        self.optimized_dimensions: Optional[MapImageDimensions] = None
-        self.combined_dimensions: Optional[MapImageDimensions] = None
-        self.data: Optional[Any] = None  # Raw image data for handling P frames
+        self.dimensions: MapImageDimensions | None = None
+        self.optimized_dimensions: MapImageDimensions | None = None
+        self.combined_dimensions: MapImageDimensions | None = None
+        self.data: Any | None = None  # Raw image data for handling P frames
         # Data json
-        self.timestamp_ms: Optional[int] = None  # Data json: timestamp_ms
-        self.rotation: Optional[int] = None  # Data json: mra
-        self.no_go_areas: Optional[List[Area]] = None  # Data json: vw.rect
-        self.virtual_walls: Optional[List[Wall]] = None  # Data json: vw.line
-        self.pathways: Optional[List[Wall]] = None  # Data json: vws.vwsl
-        self.path: Optional[Path] = None  # Data json: tr
-        self.active_segments: Optional[int] = None  # Data json: sa
-        self.active_areas: Optional[List[Area]] = None  # Data json: da2
-        self.active_points: Optional[List[Point]] = None  # Data json: sp
+        self.timestamp_ms: int | None = None  # Data json: timestamp_ms
+        self.rotation: int | None = None  # Data json: mra
+        self.no_go_areas: list[Area] | None = None  # Data json: vw.rect
+        self.virtual_walls: list[Wall] | None = None  # Data json: vw.line
+        self.pathways: list[Wall] | None = None  # Data json: vws.vwsl
+        self.path: Path | None = None  # Data json: tr
+        self.active_segments: int | None = None  # Data json: sa
+        self.active_areas: list[Area] | None = None  # Data json: da2
+        self.active_points: list[Point] | None = None  # Data json: sp
         # Data json: rism.map_header.map_id
-        self.saved_map_id: Optional[int] = None
-        self.saved_map_status: Optional[int] = None  # Data json: ris
-        self.restored_map: Optional[bool] = None  # Data json: rpur
-        self.frame_map: Optional[bool] = None  # Data json: fsm
-        self.docked: Optional[bool] = None  # Data json: oc
-        self.clean_log: Optional[bool] = None  # Data json: iscleanlog
-        self.cleanset: Optional[Dict[str, List[int]]] = None  # Data json: cleanset
-        self.line_to_robot: Optional[bool] = None  # Data json: l2r
-        self.temporary_map: Optional[int] = None  # Data json: suw
-        self.cleaned_area: Optional[int] = None  # Data json: cs
-        self.cleaning_time: Optional[int] = None  # Data json: ct
-        self.completed: Optional[bool] = None  # Data json: cf
-        self.neglected_segments: Optional[List[int]] = None  #
-        self.second_cleaning: Optional[bool] = None  #
+        self.saved_map_id: int | None = None
+        self.saved_map_status: int | None = None  # Data json: ris
+        self.restored_map: bool | None = None  # Data json: rpur
+        self.frame_map: bool | None = None  # Data json: fsm
+        self.docked: bool | None = None  # Data json: oc
+        self.clean_log: bool | None = None  # Data json: iscleanlog
+        self.cleanset: dict[str, list[int]] | None = None  # Data json: cleanset
+        self.line_to_robot: bool | None = None  # Data json: l2r
+        self.temporary_map: int | None = None  # Data json: suw
+        self.cleaned_area: int | None = None  # Data json: cs
+        self.cleaning_time: int | None = None  # Data json: ct
+        self.completed: bool | None = None  # Data json: cf
+        self.neglected_segments: list[int] | None = None  #
+        self.second_cleaning: bool | None = None  #
         # Data json: clean_finish_remain_electricity
-        self.remaining_battery: Optional[int] = None
-        self.work_status: Optional[int] = None  # Data json: wm
-        self.recovery_map: Optional[bool] = None  # Data json: us
+        self.remaining_battery: int | None = None
+        self.work_status: int | None = None  # Data json: wm
+        self.recovery_map: bool | None = None  # Data json: us
         # Generated from recovery map list json
-        self.recovery_map_type: Optional[RecoveryMapType] = None
-        self.obstacles: Optional[Dict[int, Obstacle]] = None  # Data json: ai_obstacle
+        self.recovery_map_type: RecoveryMapType | None = None
+        self.obstacles: dict[int, Obstacle] | None = None  # Data json: ai_obstacle
         # Data json: ai_furniture
-        self.furnitures: Optional[Dict[int, Furniture]] = None
+        self.furnitures: dict[int, Furniture] | None = None
         # Data json: furniture_info
-        self.saved_furnitures: Optional[Dict[int, Furniture]] = None
-        self.new_map: Optional[bool] = None  # Data json: risp
-        self.startup_method: Optional[StartupMethod] = None  # Data json: smd
-        self.task_end_type: Optional[TaskEndType] = None  # Data json: ctyi
-        self.cleanup_method: Optional[CleanupMethod] = None  #
+        self.saved_furnitures: dict[int, Furniture] | None = None
+        self.new_map: bool | None = None  # Data json: risp
+        self.startup_method: StartupMethod | None = None  # Data json: smd
+        self.task_end_type: TaskEndType | None = None  # Data json: ctyi
+        self.cleanup_method: CleanupMethod | None = None  #
         # Data json: customeclean
-        self.customized_cleaning: Optional[int] = None
+        self.customized_cleaning: int | None = None
         # Data json: CleanArea (from dirty map data)
-        self.cleaned_segments: Optional[List[Any]] = None
-        self.multiple_cleaning_time: Optional[int] = None  # Data json: multime
-        self.dos: Optional[int] = None  # Data json: dos
+        self.cleaned_segments: list[Any] | None = None
+        self.multiple_cleaning_time: int | None = None  # Data json: multime
+        self.dos: int | None = None  # Data json: dos
         # Generated
-        self.custom_name: Optional[str] = None  # Map list json: name
-        self.map_index: Optional[int] = None  # Generated from saved map list
-        self.map_name: Optional[str] = None  # Generated map name for map list
+        self.custom_name: str | None = None  # Map list json: name
+        self.map_index: int | None = None  # Generated from saved map list
+        self.map_name: str | None = None  # Generated map name for map list
         # Generated pixel map for rendering colors
-        self.pixel_type: Optional[Any] = None
-        self.optimized_pixel_type: Optional[Any] = None
-        self.combined_pixel_type: Optional[Any] = None
+        self.pixel_type: Any | None = None
+        self.optimized_pixel_type: Any | None = None
+        self.combined_pixel_type: Any | None = None
         # Generated segments from pixel_type
-        self.segments: Optional[Dict[int, Segment]] = None
+        self.segments: dict[int, Segment] | None = None
         # Generated from seg_inf.material
-        self.floor_material: Optional[Dict[int, int]] = None
-        self.saved_map: Optional[bool] = None  # Generated for rism map
-        self.empty_map: Optional[bool] = None  # Generated from pixel_type
-        self.wifi_map_data: Optional[MapData] = None  # Generated from whm
-        self.wifi_map: Optional[bool] = None  #
+        self.floor_material: dict[int, int] | None = None
+        self.saved_map: bool | None = None  # Generated for rism map
+        self.empty_map: bool | None = None  # Generated from pixel_type
+        self.wifi_map_data: MapData | None = None  # Generated from whm
+        self.wifi_map: bool | None = None  #
         # Generated from decmap
-        self.cleaning_map_data: Optional[MapData] = None
-        self.cleaning_map: Optional[bool] = None  #
-        self.has_cleaned_area: Optional[bool] = None  #
-        self.has_dirty_area: Optional[bool] = None  #
-        self.history_map: Optional[bool] = None  #
-        self.furniture_version: Optional[bool] = None  #
+        self.cleaning_map_data: MapData | None = None
+        self.cleaning_map: bool | None = None  #
+        self.has_cleaned_area: bool | None = None  #
+        self.has_dirty_area: bool | None = None  #
+        self.history_map: bool | None = None  #
+        self.furniture_version: bool | None = None  #
         # Generated from recovery map list
-        self.recovery_map_list: Optional[List[RecoveryMapInfo]] = None
+        self.recovery_map_list: list[RecoveryMapInfo] | None = None
         # Data json: pointinfo.tpoint
-        self.active_cruise_points: Optional[List[Coordinate]] = None
+        self.active_cruise_points: list[Coordinate] | None = None
         # Data json: pointinfo.spoint
-        self.predefined_points: Optional[Dict[int, Coordinate]] = None
+        self.predefined_points: dict[int, Coordinate] | None = None
         # Data json: tpointinfo
-        self.task_cruise_points: Optional[List[Coordinate]] = None
+        self.task_cruise_points: list[Coordinate] | None = None
         # Generated from pixel_type and robot poisiton
-        self.hidden_segments: Optional[int] = None  # Data json: delsr
-        self.robot_segment: Optional[int] = None
+        self.hidden_segments: int | None = None  # Data json: delsr
+        self.robot_segment: int | None = None
         # For renderer to detect changes
-        self.last_updated: Optional[float] = None
+        self.last_updated: float | None = None
         # For vslam map rendering optimization
-        self.need_optimization: Optional[bool] = None
+        self.need_optimization: bool | None = None
         # 3D Map Properties
-        self.ai_outborders_user: Optional[Any] = None
-        self.ai_outborders: Optional[Any] = None
-        self.ai_outborders_new: Optional[Any] = None
-        self.ai_outborders_2d: Optional[Any] = None
-        self.ai_furniture_warning: Optional[Any] = None
-        self.walls_info: Optional[Any] = None
-        self.walls_info_new: Optional[Any] = None
+        self.ai_outborders_user: Any | None = None
+        self.ai_outborders: Any | None = None
+        self.ai_outborders_new: Any | None = None
+        self.ai_outborders_2d: Any | None = None
+        self.ai_furniture_warning: Any | None = None
+        self.walls_info: Any | None = None
+        self.walls_info_new: Any | None = None
 
     def __eq__(self: MapData, other: MapData) -> bool:
         if other is None:
@@ -2548,7 +2548,7 @@ class MapData:
 
         return True
 
-    def as_dict(self) -> Dict[str, Any]:
+    def as_dict(self) -> dict[str, Any]:
         attributes_list = {}
         if self.charger_position is not None:
             attributes_list[ATTR_CHARGER] = (
@@ -2870,8 +2870,8 @@ class MapRendererLayer(IntEnum):
 
 @dataclass
 class Line:
-    x: int | List[int] = None
-    y: int | List[int] = None
+    x: int | list[int] = None
+    y: int | list[int] = None
     ishorizontal: bool = False
     direction: int = 0
 
@@ -2891,14 +2891,14 @@ class ALine:
 
 @dataclass
 class Paths:
-    clines: List[CLine] = field(default_factory=lambda: [])
-    alines: List[ALine] = field(default_factory=lambda: [])
+    clines: list[CLine] = field(default_factory=lambda: [])
+    alines: list[ALine] = field(default_factory=lambda: [])
     length: int = 0
 
 
 @dataclass
 class Angle:
-    lines: List[ALine] = field(default_factory=lambda: [])
+    lines: list[ALine] = field(default_factory=lambda: [])
     horizontalDir: int = 0
     verticalDir: int = 0
 
@@ -2917,7 +2917,7 @@ class MapRendererResources:
     cleaning_direction: str = None
     selected_segment: str = None
     cruise_point_background: str = None
-    segment: Dict[int, Dict[str, str]] = None
+    segment: dict[int, dict[str, str]] = None
     default_map_image: str = None
     font: str = None
     repeats: list[str] = None
@@ -2927,8 +2927,8 @@ class MapRendererResources:
     cruise_path_point_background: str = None
     obstacle_background: str = None
     obstacle_hidden_background: str = None
-    obstacle: Dict[int, Dict[str, str]] = None
-    furniture: Dict[int, Dict[str, str]] = None
+    obstacle: dict[int, dict[str, str]] = None
+    furniture: dict[int, dict[str, str]] = None
     rotate: str = None
     delete: str = None
     resize: str = None
@@ -2940,14 +2940,14 @@ class MapRendererResources:
 
 @dataclass
 class MapRendererData:
-    data: Dict[int, list[int]]
+    data: dict[int, list[int]]
     size: list[int] = None
     frame_id: int = 0
     saved_map: bool = False
     wifi_map: bool = False
     history_map: bool = False
     recovery_map: bool = False
-    segments: Dict[int, list[int | str]] | None = None
+    segments: dict[int, list[int | str]] | None = None
     active_segments: list[int] = field(default_factory=lambda: [])
     active_areas: list[list[int]] = field(default_factory=lambda: [])
     active_points: list[list[int]] = field(default_factory=lambda: [])
@@ -2961,9 +2961,9 @@ class MapRendererData:
     obstacles: list[list[int | float]] = field(default_factory=lambda: [])
     furnitures: list[list[int | float]] | None = None
     path: list[list[int]] = field(default_factory=lambda: [])
-    floor_material: Dict[int, list[int]] | None = None
-    hidden_segments: Dict[int, list[int]] | None = None
-    neglected_segments: Dict[int, list[int]] | None = None
+    floor_material: dict[int, list[int]] | None = None
+    hidden_segments: dict[int, list[int]] | None = None
+    neglected_segments: dict[int, list[int]] | None = None
     robot_position: list[int] | None = None
     charger_position: list[int] | None = None
     router_position: list[int] | None = None

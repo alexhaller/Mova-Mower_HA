@@ -12,7 +12,7 @@ from threading import Thread, Timer
 from time import sleep
 import time
 from paho.mqtt import client as mqtt_client
-from typing import Any, Optional, Tuple
+from typing import Any
 from miio.miioprotocol import MiIOProtocol
 
 from .exceptions import DeviceException
@@ -411,7 +411,7 @@ class DreameMowerDreameHomeCloudProtocol:
             return data
         return None
 
-    def get_info(self, mac: str) -> Tuple[Optional[str], Optional[str]]:
+    def get_info(self, mac: str) -> tuple[str | None, str | None]:
         if self._did is not None:
             return " ", self._host
         devices = self.get_devices()

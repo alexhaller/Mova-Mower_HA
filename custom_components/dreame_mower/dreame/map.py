@@ -29,7 +29,6 @@ from PIL import (
 from typing import Any
 from time import sleep
 from io import BytesIO
-from typing import Optional, Tuple
 from functools import cmp_to_key
 from threading import Timer
 from .resources import (
@@ -626,7 +625,7 @@ class DreameMapMowerMapManager:
 
     def _get_object_file_data(
         self, object_name: str = "", timestamp=None
-    ) -> Tuple[Any, Optional[str]]:
+    ) -> tuple[Any, str | None]:
         key = None
         if object_name and "," in object_name:
             values = object_name.split(",")
@@ -2856,7 +2855,7 @@ class DreameMowerMapDecoder:
         rotation: int = 0,
         iv: str = None,
         key: str = None,
-    ) -> Tuple[MapData, Optional[MapData]]:
+    ) -> tuple[MapData, MapData | None]:
         return DreameMowerMapDecoder.decode_map_data_from_partial(
             DreameMowerMapDecoder.decode_map_partial(raw_map, iv, key),
             vslam_map,
@@ -4252,7 +4251,7 @@ class DreameMowerMapDecoder:
 class DreameMowerMapDataJsonRenderer:
     HALF_INT16 = 32768
     HALF_INT16_UPPER_HALF = 32767
-    MAX = round(((HALF_INT16 + HALF_INT16_UPPER_HALF) / 10))
+    MAX = round((HALF_INT16 + HALF_INT16_UPPER_HALF) / 10)
 
     def __init__(self) -> None:
         self._map_data: MapData = None
@@ -6254,10 +6253,8 @@ class DreameMowerMapRenderer:
                         (
                             base_width,
                             int(
-                                (
-                                    float(image.size[1])
-                                    * float((base_width / float(image.size[0])))
-                                )
+                                float(image.size[1])
+                                * float(base_width / float(image.size[0]))
                             ),
                         ),
                         Image.Resampling.LANCZOS,
@@ -6835,45 +6832,37 @@ class DreameMowerMapRenderer:
                         )
                         or bool(
                             (
-                                (
-                                    not map_data.active_segments
-                                    or k in map_data.active_segments
-                                )
-                                and (
-                                    not map_data.hidden_segments
-                                    or k not in map_data.hidden_segments
-                                )
-                                and not map_data.cleaning_map
+                                not map_data.active_segments
+                                or k in map_data.active_segments
                             )
+                            and (
+                                not map_data.hidden_segments
+                                or k not in map_data.hidden_segments
+                            )
+                            and not map_data.cleaning_map
                         )
                         != bool(
                             (
-                                (
-                                    not self._map_data.active_segments
-                                    or k in self._map_data.active_segments
-                                )
-                                and (
-                                    not self._map_data.hidden_segments
-                                    or k not in self._map_data.hidden_segments
-                                )
-                                and not self._map_data.cleaning_map
+                                not self._map_data.active_segments
+                                or k in self._map_data.active_segments
                             )
+                            and (
+                                not self._map_data.hidden_segments
+                                or k not in self._map_data.hidden_segments
+                            )
+                            and not self._map_data.cleaning_map
                         )
                         or bool(
-                            (
-                                map_data.cleaning_map
-                                and (
-                                    map_data.neglected_segments
-                                    and k in map_data.neglected_segments
-                                )
+                            map_data.cleaning_map
+                            and (
+                                map_data.neglected_segments
+                                and k in map_data.neglected_segments
                             )
                         )
                         != bool(
-                            (
-                                self._map_data.cleaning_map
-                                and self._map_data.neglected_segments
-                                and k in self._map_data.neglected_segments
-                            )
+                            self._map_data.cleaning_map
+                            and self._map_data.neglected_segments
+                            and k in self._map_data.neglected_segments
                         )
                     ):
                         changed = True
@@ -7774,14 +7763,14 @@ class DreameMowerMapRenderer:
             if render_font and self._font_file:
                 text_font = ImageFont.truetype(
                     BytesIO(self._font_file),
-                    int((size * 1.9))
+                    int(size * 1.9)
                     if segment.index or icon is None
-                    else int((size * 1.7)),
+                    else int(size * 1.7),
                 )
 
             if active and segment.order and self.config.order:
                 order_font = ImageFont.truetype(
-                    BytesIO(self._font_file), int((size * 2.1))
+                    BytesIO(self._font_file), int(size * 2.1)
                 )
 
             p = Point(segment.x, segment.y).to_img(dimensions, False)
@@ -8096,7 +8085,7 @@ class DreameMowerMapRenderer:
                                     + ((ellipse_x2 - ellipse_x1) / 2)
                                     - ico.size[0] / 2
                                 ),
-                                int(((icon_h / 2) - ico.size[1] / 2)),
+                                int((icon_h / 2) - ico.size[1] / 2),
                             ),
                             ico,
                         )
@@ -8132,7 +8121,7 @@ class DreameMowerMapRenderer:
                                     + ((ellipse_x2 - ellipse_x1) / 2)
                                     - ico.size[0] / 2
                                 ),
-                                int(((icon_h / 2) - ico.size[1] / 2)),
+                                int((icon_h / 2) - ico.size[1] / 2),
                             ),
                             ico,
                         )
@@ -8388,7 +8377,7 @@ class DreameMowerMapRenderer:
                 )
 
             font = ImageFont.truetype(
-                BytesIO(self._font_file), int((bg_size * 1.5 * scale))
+                BytesIO(self._font_file), int(bg_size * 1.5 * scale)
             )
 
             text = str(index)

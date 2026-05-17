@@ -10,7 +10,7 @@ import base64
 from datetime import datetime
 from random import randrange
 from threading import Timer
-from typing import Any, Optional
+from typing import Any
 
 from .types import (
     PIID,
@@ -3241,7 +3241,7 @@ class DreameMowerDevice:
             )
 
         payload = (
-            '{"spdv":%(velocity)d,"spdw":%(rotation)d,"audio":"%(audio)s","random":%(random)d}'
+            '{"spdv":%(velocity)d,"spdw":%(rotation)d,"audio":"%(audio)s","random":%(random)d}'  # noqa: UP031
             % {
                 "velocity": velocity,
                 "rotation": rotation,
@@ -3268,7 +3268,7 @@ class DreameMowerDevice:
     ) -> dict[str, Any] | None:
         """install a custom language pack"""
         payload = (
-            '{"id":"%(lang_id)s","url":"%(url)s","md5":"%(md5)s","size":%(size)d}'
+            '{"id":"%(lang_id)s","url":"%(url)s","md5":"%(md5)s","size":%(size)d}'  # noqa: UP031
             % {
                 "lang_id": lang_id,
                 "url": url,
@@ -6042,7 +6042,7 @@ class DreameMowerDeviceInfo:
                 self.version = int(firmware_version[1])
 
     def __repr__(self):
-        return "%s v%s (%s) @ %s - token: %s" % (
+        return "%s v%s (%s) @ %s - token: %s" % (  # noqa: UP031
             self.model,
             self.version,
             self.mac,
@@ -6058,14 +6058,14 @@ class DreameMowerDeviceInfo:
         return None
 
     @property
-    def model(self) -> Optional[str]:
+    def model(self) -> str | None:
         """Model string if available."""
         if "model" in self.data:
             return self.data["model"]
         return None
 
     @property
-    def firmware_version(self) -> Optional[str]:
+    def firmware_version(self) -> str | None:
         """Firmware version if available."""
         if "fw_ver" in self.data and self.data["fw_ver"] is not None:
             return self.data["fw_ver"]
@@ -6074,14 +6074,14 @@ class DreameMowerDeviceInfo:
         return None
 
     @property
-    def hardware_version(self) -> Optional[str]:
+    def hardware_version(self) -> str | None:
         """Hardware version if available."""
         if "hw_ver" in self.data:
             return self.data["hw_ver"]
         return "Linux"
 
     @property
-    def mac_address(self) -> Optional[str]:
+    def mac_address(self) -> str | None:
         """MAC address if available."""
         if "mac" in self.data:
             return self.data["mac"]

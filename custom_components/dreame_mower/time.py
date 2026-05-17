@@ -5,7 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import time
-from typing import Callable
+from collections.abc import Callable
 
 from homeassistant.components.time import (
     ENTITY_ID_FORMAT,

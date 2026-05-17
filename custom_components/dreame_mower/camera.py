@@ -7,7 +7,7 @@ import time
 import asyncio
 import traceback
 import gzip
-from typing import Any, Dict, Final
+from typing import Any, Final
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from functools import partial
@@ -620,10 +620,8 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                     await response.write(
                         bytes(
                             "--frameboundary\r\n"
-                            "Content-Type: {}\r\n"
-                            "Content-Length: {}\r\n\r\n".format(
-                                self.content_type, len(img_bytes)
-                            ),
+                            f"Content-Type: {self.content_type}\r\n"
+                            f"Content-Length: {len(img_bytes)}\r\n\r\n",
                             "utf-8",
                         )
                         + img_bytes
@@ -954,7 +952,7 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
         )
 
     @property
-    def extra_state_attributes(self) -> Dict[str, Any]:
+    def extra_state_attributes(self) -> dict[str, Any]:
         if not self.map_data_json:
             attributes = None
             map_data = self._map_data

@@ -6,7 +6,7 @@ import copy
 
 from dataclasses import dataclass
 from functools import partial
-from typing import Callable
+from collections.abc import Callable
 
 from homeassistant.components.number import (
     ENTITY_ID_FORMAT,

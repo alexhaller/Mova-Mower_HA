@@ -1,7 +1,7 @@
 # mypy: ignore-errors
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 from dataclasses import dataclass
 from collections.abc import Callable
 from functools import partial
@@ -71,7 +71,7 @@ class DreameMowerEntityDescription:
     available_fn: Callable[[object], bool] = None
     icon_fn: Callable[[str, object], str] = None
     name_fn: Callable[[str, object], str] = None
-    attrs_fn: Callable[[object, Dict]] = None
+    attrs_fn: Callable[[object, dict]] = None
 
 
 class DreameMowerEntity(CoordinatorEntity[DreameMowerDataUpdateCoordinator]):
