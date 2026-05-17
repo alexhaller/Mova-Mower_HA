@@ -457,6 +457,7 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
         map_index: int = 0,
     ) -> None:
         """Initialize a Dreame Mower Camera entity."""
+        Camera.__init__(self)
         super().__init__(coordinator, description)
         self._generate_entity_id(ENTITY_ID_FORMAT)
         self.content_type = PNG_CONTENT_TYPE
