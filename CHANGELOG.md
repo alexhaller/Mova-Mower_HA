@@ -1,3 +1,9 @@
+## [1.0.1](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.0...v1.0.1) (2026-05-17)
+
+### Bug Fixes
+
+* replace inline URLs in strings.json with description placeholders ([45a41a1](https://github.com/alexhaller/Mova-Mower_HA/commit/45a41a1f1c5cea5e7c35240adadec5956de7878f))
+
 ## 1.0.0 (2026-05-17)
 
 ### Bug Fixes
