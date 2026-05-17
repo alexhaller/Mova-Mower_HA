@@ -10,14 +10,10 @@ import re
 import logging
 import traceback
 import copy
-import warnings
 import numpy as np
 import hashlib
 import textwrap
-
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore", "pkg_resources is deprecated", UserWarning)
-    from py_mini_racer import MiniRacer
+import quickjs
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
@@ -10408,8 +10404,8 @@ class DreameMowerMapOptimizer:
 
             if js_optimizer:
                 if self._js_optimizer is None:
-                    self._js_optimizer = MiniRacer()
-                    self._js_optimizer.eval(base64.b64decode(MAP_OPTIMIZER_JS))
+                    self._js_optimizer = quickjs.Context()
+                    self._js_optimizer.eval(base64.b64decode(MAP_OPTIMIZER_JS).decode())
 
                 data = map_data.pixel_type.tolist()
                 data_size = [
