@@ -1,3 +1,9 @@
+## [1.0.3](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.2...v1.0.3) (2026-05-17)
+
+### Bug Fixes
+
+* replace py-mini-racer with quickjs to eliminate pkg_resources warning ([99d32b1](https://github.com/alexhaller/Mova-Mower_HA/commit/99d32b14d43ba7176958594c8c0b6eaa7539982f))
+
 ## [1.0.2](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.1...v1.0.2) (2026-05-17)
 
 ### Bug Fixes
