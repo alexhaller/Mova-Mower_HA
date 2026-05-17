@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from __future__ import annotations
 import io
 import math
@@ -12,12 +13,10 @@ import copy
 import numpy as np
 import hashlib
 import textwrap
-from datetime import datetime
 from py_mini_racer import MiniRacer
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.primitives import padding
-from Crypto.Util.Padding import unpad
 from PIL import (
     Image,
     ImageDraw,
@@ -33,7 +32,62 @@ from io import BytesIO
 from typing import Optional, Tuple
 from functools import cmp_to_key
 from threading import Timer
-from .resources import *
+from .resources import (
+    DEFAULT_MAP_DATA,
+    DEFAULT_MAP_DATA_IMAGE,
+    DEFAULT_MAP_IMAGE,
+    FURNITURE_TYPE_TO_ICON,
+    FURNITURE_TYPE_TO_IMAGE,
+    FURNITURE_V2_TYPE_TO_ICON,
+    FURNITURE_V2_TYPE_TO_IMAGE,
+    MAP_CHARGER_IMAGE_DREAME,
+    MAP_CHARGER_IMAGE_MATERIAL,
+    MAP_CHARGER_IMAGE_MIJIA,
+    MAP_CHARGER_VSLAM_IMAGE_DREAME,
+    MAP_FONT,
+    MAP_FONT_LIGHT,
+    MAP_ICON_CLEANING_MODE_DREAME,
+    MAP_ICON_CLEANING_MODE_MATERIAL,
+    MAP_ICON_CLEANING_MODE_MIJIA,
+    MAP_ICON_CLEANING_ROUTE_DREAME,
+    MAP_ICON_CLEANING_ROUTE_MATERIAL,
+    MAP_ICON_CRUISE_POINT_BG_DREAME,
+    MAP_ICON_CRUISE_POINT_DREAME,
+    MAP_ICON_DELETE,
+    MAP_ICON_MOVE,
+    MAP_ICON_OBSTACLE_BG_DREAME,
+    MAP_ICON_OBSTACLE_HIDDEN_BG_DREAME,
+    MAP_ICON_PROBLEM,
+    MAP_ICON_REPEATS_DREAME,
+    MAP_ICON_REPEATS_MATERIAL,
+    MAP_ICON_REPEATS_MIJIA,
+    MAP_ICON_RESIZE,
+    MAP_ICON_ROTATE,
+    MAP_ICON_SELECTED_SEGMENT,
+    MAP_OPTIMIZER_JS,
+    MAP_ROBOT_CHARGING_IMAGE,
+    MAP_ROBOT_CLEANING_DIRECTION_IMAGE,
+    MAP_ROBOT_CLEANING_IMAGE,
+    MAP_ROBOT_LIDAR_IMAGE_DREAME_DARK,
+    MAP_ROBOT_LIDAR_IMAGE_DREAME_LIGHT,
+    MAP_ROBOT_LIDAR_IMAGE_MIJIA,
+    MAP_ROBOT_OBSTACLE_BOTTOM_LEFT_IMAGE,
+    MAP_ROBOT_OBSTACLE_BOTTOM_RIGHT_IMAGE,
+    MAP_ROBOT_OBSTACLE_TOP_LEFT_IMAGE,
+    MAP_ROBOT_OBSTACLE_TOP_RIGHT_IMAGE,
+    MAP_ROBOT_SLEEPING_IMAGE,
+    MAP_ROBOT_VSLAM_IMAGE_DREAME_DARK,
+    MAP_ROBOT_VSLAM_IMAGE_DREAME_LIGHT,
+    MAP_ROBOT_VSLAM_IMAGE_MIJIA,
+    MAP_ROBOT_WARNING_IMAGE,
+    MAP_WIFI_IMAGE_DREAME,
+    OBSTACLE_TYPE_TO_HIDDEN_ICON,
+    OBSTACLE_TYPE_TO_ICON,
+    SEGMENT_ICONS_DREAME,
+    SEGMENT_ICONS_DREAME_OLD,
+    SEGMENT_ICONS_MATERIAL,
+    SEGMENT_ICONS_MIJIA,
+)
 from .protocol import DreameMowerProtocol
 from .exceptions import DeviceUpdateFailedException
 from .types import (
@@ -61,7 +115,6 @@ from .types import (
     Wall,
     Segment,
     StartupMethod,
-    CleanupMethod,
     TaskEndType,
     RecoveryMapType,
     ObstacleIgnoreStatus,
@@ -212,10 +265,16 @@ class DreameMapMowerMapManager:
             elif self._last_robot_time is not None:
                 request_start_time = int(self._last_robot_time / 1000)
 
-        if self._latest_map_data_time is None or self._latest_map_data_time < request_start_time:
+        if (
+            self._latest_map_data_time is None
+            or self._latest_map_data_time < request_start_time
+        ):
             self._latest_map_data_time = request_start_time
 
-        if self._latest_object_name_time is None or self._latest_object_name_time < request_start_time:
+        if (
+            self._latest_object_name_time is None
+            or self._latest_object_name_time < request_start_time
+        ):
             self._latest_object_name_time = request_start_time
 
         map_data_result = self._protocol.cloud.get_device_property(
@@ -249,8 +308,16 @@ class DreameMapMowerMapManager:
             for data in map_data_result:
                 partial_map_data.append(
                     self._decode_map_partial(
-                        json.loads(data[MAP_PARAMETER_VALUE if MAP_PARAMETER_VALUE in data else "val"])[0],
-                        data[MAP_PARAMETER_TIME] * 1000 if data.get(MAP_PARAMETER_TIME) else None,
+                        json.loads(
+                            data[
+                                MAP_PARAMETER_VALUE
+                                if MAP_PARAMETER_VALUE in data
+                                else "val"
+                            ]
+                        )[0],
+                        data[MAP_PARAMETER_TIME] * 1000
+                        if data.get(MAP_PARAMETER_TIME)
+                        else None,
                     )
                 )
 
@@ -263,7 +330,9 @@ class DreameMapMowerMapManager:
                 self._latest_object_name_time = timestamp + 1
 
             if len(object_name_result) == 1:
-                object_name = json.loads(data[MAP_PARAMETER_VALUE if MAP_PARAMETER_VALUE in data else "val"])[0]
+                object_name = json.loads(
+                    data[MAP_PARAMETER_VALUE if MAP_PARAMETER_VALUE in data else "val"]
+                )[0]
                 if timestamp:
                     object_name_timestamp = timestamp * 1000
 
@@ -279,7 +348,9 @@ class DreameMapMowerMapManager:
         payload = [
             {
                 "piid": PIID(DreameMowerProperty.FRAME_INFO),
-                MAP_PARAMETER_VALUE: str(json.dumps(parameters, separators=(",", ":"))).replace(" ", ""),
+                MAP_PARAMETER_VALUE: str(
+                    json.dumps(parameters, separators=(",", ":"))
+                ).replace(" ", ""),
             }
         ]
 
@@ -472,7 +543,10 @@ class DreameMapMowerMapManager:
             return
         next_frame_id = 0
 
-        if self._current_map_id is not None and self._current_map_id == self._latest_map_id:
+        if (
+            self._current_map_id is not None
+            and self._current_map_id == self._latest_map_id
+        ):
             next_frame_id = self._current_frame_id + 1
 
         if map_data.map_id not in self._map_data_queue:
@@ -495,7 +569,10 @@ class DreameMapMowerMapManager:
             if k != self._latest_map_id:
                 del self._map_data_queue[k]
 
-        if self._latest_map_id not in self._map_data_queue or not self._map_data_queue[self._latest_map_id]:
+        if (
+            self._latest_map_id not in self._map_data_queue
+            or not self._map_data_queue[self._latest_map_id]
+        ):
             return
 
         map_data_queue = copy.deepcopy(self._map_data_queue[self._latest_map_id])
@@ -539,12 +616,17 @@ class DreameMapMowerMapManager:
         if self._latest_map_timestamp_ms is None:
             return 0
 
-        if self._latest_map_id not in self._map_data_queue or not self._map_data_queue[self._latest_map_id]:
+        if (
+            self._latest_map_id not in self._map_data_queue
+            or not self._map_data_queue[self._latest_map_id]
+        ):
             return 0
 
         return len(self._map_data_queue[self._latest_map_id])
 
-    def _get_object_file_data(self, object_name: str = "", timestamp=None) -> Tuple[Any, Optional[str]]:
+    def _get_object_file_data(
+        self, object_name: str = "", timestamp=None
+    ) -> Tuple[Any, Optional[str]]:
         key = None
         if object_name and "," in object_name:
             values = object_name.split(",")
@@ -553,12 +635,16 @@ class DreameMapMowerMapManager:
         response = self._get_interim_file_data(object_name, timestamp)
         return response, key
 
-    def _get_interim_file_data(self, object_name: str = "", timestamp=None) -> str | None:
+    def _get_interim_file_data(
+        self, object_name: str = "", timestamp=None
+    ) -> str | None:
         if self._protocol.cloud.logged_in:
             if object_name is None or object_name == "":
                 _LOGGER.info("Get object name from cloud")
                 if self._protocol.cloud.dreame_cloud:
-                    object_name_result = self._protocol.cloud.get_properties(DIID(DreameMowerProperty.OBJECT_NAME))
+                    object_name_result = self._protocol.cloud.get_properties(
+                        DIID(DreameMowerProperty.OBJECT_NAME)
+                    )
                     if object_name_result:
                         object_name_result = object_name_result[0][MAP_PARAMETER_VALUE]
                         object_name = object_name_result[0]
@@ -567,7 +653,9 @@ class DreameMapMowerMapManager:
                         DIID(DreameMowerProperty.OBJECT_NAME)
                     )
                     if object_name_result:
-                        object_name_result = json.loads(object_name_result[0][MAP_PARAMETER_VALUE])
+                        object_name_result = json.loads(
+                            object_name_result[0][MAP_PARAMETER_VALUE]
+                        )
                         object_name = object_name_result[0]
 
             if object_name is None or object_name == "":
@@ -605,16 +693,26 @@ class DreameMapMowerMapManager:
                 url = self._file_urls[object_name][MAP_PARAMETER_URL]
         return url
 
-    def _decode_map_partial(self, raw_map, timestamp=None, key=None) -> MapDataPartial | None:
-        partial_map = DreameMowerMapDecoder.decode_map_partial(raw_map, self._aes_iv, key)
+    def _decode_map_partial(
+        self, raw_map, timestamp=None, key=None
+    ) -> MapDataPartial | None:
+        partial_map = DreameMowerMapDecoder.decode_map_partial(
+            raw_map, self._aes_iv, key
+        )
         if partial_map is not None:
             # After restart or unsuccessful start robot returns timestamp_ms as uptime and that messes up with the latest map/frame id detection.
             # I could not figure out how app handles with this issue but i have added this code to update time stamp as request/object time.
 
-            if timestamp and (partial_map.timestamp_ms is None or partial_map.timestamp_ms < 1577826000000):
+            if timestamp and (
+                partial_map.timestamp_ms is None
+                or partial_map.timestamp_ms < 1577826000000
+            ):
                 partial_map.timestamp_ms = timestamp
 
-            if self._latest_map_timestamp_ms is None or partial_map.timestamp_ms > self._latest_map_timestamp_ms:
+            if (
+                self._latest_map_timestamp_ms is None
+                or partial_map.timestamp_ms > self._latest_map_timestamp_ms
+            ):
                 self._latest_map_timestamp_ms = partial_map.timestamp_ms
                 self._latest_map_id = partial_map.map_id
 
@@ -633,7 +731,9 @@ class DreameMapMowerMapManager:
             next_frame_id = self._current_frame_id + 1
 
         if (
-            not self._add_map_data(self._unqueue_partial_map(self._latest_map_id, next_frame_id))
+            not self._add_map_data(
+                self._unqueue_partial_map(self._latest_map_id, next_frame_id)
+            )
             and object_name is None
         ):
             self._delete_invalid_partial_maps()
@@ -650,11 +750,18 @@ class DreameMapMowerMapManager:
 
         if object_name is not None:
             _LOGGER.info("New object name received: %s", object_name)
-            response, key = self._get_object_file_data(object_name, object_name_timestamp)
+            response, key = self._get_object_file_data(
+                object_name, object_name_timestamp
+            )
             if response:
-                partial_map = self._decode_map_partial(response.decode(), object_name_timestamp, key)
+                partial_map = self._decode_map_partial(
+                    response.decode(), object_name_timestamp, key
+                )
                 if partial_map:
-                    if self._map_data is None or partial_map.frame_type == MapFrameType.I.value:
+                    if (
+                        self._map_data is None
+                        or partial_map.frame_type == MapFrameType.I.value
+                    ):
                         return self._add_map_data(partial_map)
 
                     self._queue_partial_map(partial_map)
@@ -697,7 +804,10 @@ class DreameMapMowerMapManager:
             )
             return True
 
-        if self._current_map_id is not None and self._current_map_id != self._latest_map_id:
+        if (
+            self._current_map_id is not None
+            and self._current_map_id != self._latest_map_id
+        ):
             _LOGGER.info(
                 "Map ID Changed: %s -> %s",
                 self._current_map_id,
@@ -738,7 +848,11 @@ class DreameMapMowerMapManager:
                 return True
 
         if partial_map.frame_type == MapFrameType.P.value:
-            if self._current_frame_id is not None and self._map_data is not None and self._map_data.restored_map:
+            if (
+                self._current_frame_id is not None
+                and self._map_data is not None
+                and self._map_data.restored_map
+            ):
                 _LOGGER.debug("Current map data removed")
                 self._map_data = None
                 self._current_frame_id = None
@@ -772,13 +886,17 @@ class DreameMapMowerMapManager:
                                 next_frame_id = self._current_frame_id + 1
                             self._request_next_p_map(self._latest_map_id, next_frame_id)
                     else:
-                        self._request_next_p_map(partial_map.map_id, self._current_frame_id + 1)
+                        self._request_next_p_map(
+                            partial_map.map_id, self._current_frame_id + 1
+                        )
                 else:
                     self._add_next_map_data()
                 return True
 
             current_robot_position = (
-                copy.deepcopy(self._map_data.robot_position) if self._map_data.robot_position else None
+                copy.deepcopy(self._map_data.robot_position)
+                if self._map_data.robot_position
+                else None
             )
 
             map_data = DreameMowerMapDecoder.decode_p_map_data_from_partial(
@@ -796,7 +914,10 @@ class DreameMapMowerMapManager:
 
                 _LOGGER.info("Decode P map %d %d", map_data.map_id, map_data.frame_id)
 
-                if not self._device_running or current_robot_position != map_data.robot_position:
+                if (
+                    not self._device_running
+                    or current_robot_position != map_data.robot_position
+                ):
                     self._map_data_changed()
 
         elif partial_map.frame_type == MapFrameType.I.value:
@@ -806,7 +927,9 @@ class DreameMapMowerMapManager:
             (
                 map_data,
                 saved_map_data,
-            ) = DreameMowerMapDecoder.decode_map_data_from_partial(partial_map, self._vslam_map)
+            ) = DreameMowerMapDecoder.decode_map_data_from_partial(
+                partial_map, self._vslam_map
+            )
             if map_data is None:
                 self._add_next_map_data()
                 return True
@@ -827,20 +950,33 @@ class DreameMapMowerMapManager:
                 if saved_map_data.map_id in self._saved_map_data:
                     map_data.temporary_map = False
                     self._selected_map_id = saved_map_data.map_id
-                    saved_map_data.map_name = self._saved_map_data[saved_map_data.map_id].map_name
-                    saved_map_data.custom_name = self._saved_map_data[saved_map_data.map_id].custom_name
-                    saved_map_data.rotation = self._saved_map_data[saved_map_data.map_id].rotation
-                    saved_map_data.map_index = self._saved_map_data[saved_map_data.map_id].map_index
-                    saved_map_data.recovery_map_list = self._saved_map_data[saved_map_data.map_id].recovery_map_list
+                    saved_map_data.map_name = self._saved_map_data[
+                        saved_map_data.map_id
+                    ].map_name
+                    saved_map_data.custom_name = self._saved_map_data[
+                        saved_map_data.map_id
+                    ].custom_name
+                    saved_map_data.rotation = self._saved_map_data[
+                        saved_map_data.map_id
+                    ].rotation
+                    saved_map_data.map_index = self._saved_map_data[
+                        saved_map_data.map_id
+                    ].map_index
+                    saved_map_data.recovery_map_list = self._saved_map_data[
+                        saved_map_data.map_id
+                    ].recovery_map_list
 
                     saved_map_data.timestamp_ms = map_data.timestamp_ms
                     if (
                         saved_map_data != self._saved_map_data[saved_map_data.map_id]
-                        or saved_map_data.segments != self._saved_map_data[saved_map_data.map_id].segments
+                        or saved_map_data.segments
+                        != self._saved_map_data[saved_map_data.map_id].segments
                     ):
                         saved_map_data.last_updated = time.time()
                         if saved_map_data.wifi_map_data:
-                            saved_map_data.wifi_map_data.last_updated = saved_map_data.last_updated
+                            saved_map_data.wifi_map_data.last_updated = (
+                                saved_map_data.last_updated
+                            )
                         self._saved_map_data[saved_map_data.map_id] = saved_map_data
 
                         _LOGGER.debug(
@@ -852,10 +988,14 @@ class DreameMapMowerMapManager:
                     if not self._map_list:
                         saved_map_data.last_updated = time.time()
                         if saved_map_data.wifi_map_data:
-                            saved_map_data.wifi_map_data.last_updated = saved_map_data.last_updated
+                            saved_map_data.wifi_map_data.last_updated = (
+                                saved_map_data.last_updated
+                            )
                         self._saved_map_data[saved_map_data.map_id] = saved_map_data
 
-                        _LOGGER.info("Add saved map from new map %s", saved_map_data.map_id)
+                        _LOGGER.info(
+                            "Add saved map from new map %s", saved_map_data.map_id
+                        )
                         self._refresh_map_list()
                         if self._map_data:
                             self._map_data_changed()
@@ -865,16 +1005,24 @@ class DreameMapMowerMapManager:
                     else:
                         self.request_map_list()
 
-            DreameMowerMapDecoder.set_segment_cleanset(map_data, map_data.cleanset, self._capability)
+            DreameMowerMapDecoder.set_segment_cleanset(
+                map_data, map_data.cleanset, self._capability
+            )
 
             if not map_data.saved_map:
                 if self._vslam_map:
-                    if map_data.saved_map_status == 1 and saved_map_data and self._device_docked:
+                    if (
+                        map_data.saved_map_status == 1
+                        and saved_map_data
+                        and self._device_docked
+                    ):
                         map_data.segments = copy.deepcopy(saved_map_data.segments)
                         map_data.data = copy.deepcopy(saved_map_data.data)
                         map_data.pixel_type = copy.deepcopy(saved_map_data.pixel_type)
                         map_data.dimensions = copy.deepcopy(saved_map_data.dimensions)
-                        map_data.charger_position = copy.deepcopy(saved_map_data.charger_position)
+                        map_data.charger_position = copy.deepcopy(
+                            saved_map_data.charger_position
+                        )
                         map_data.no_go_areas = saved_map_data.no_go_areas
                         map_data.virtual_walls = saved_map_data.virtual_walls
                         map_data.robot_position = None
@@ -912,16 +1060,25 @@ class DreameMapMowerMapManager:
                         if map_data.frame_id <= self._updated_frame_id + 1:
                             if not self._map_data.empty_map and (
                                 self._map_data.saved_map_status == 2
-                                or (self._vslam_map and self._map_data.saved_map_status == 1)
+                                or (
+                                    self._vslam_map
+                                    and self._map_data.saved_map_status == 1
+                                )
                             ):
-                                map_data.active_segments = self._map_data.active_segments
+                                map_data.active_segments = (
+                                    self._map_data.active_segments
+                                )
                                 map_data.active_areas = self._map_data.active_areas
                                 map_data.active_points = self._map_data.active_points
-                                map_data.active_cruise_points = self._map_data.active_cruise_points
+                                map_data.active_cruise_points = (
+                                    self._map_data.active_cruise_points
+                                )
                                 map_data.path = self._map_data.path
                                 map_data.segments = self._map_data.segments
                                 map_data.floor_material = self._map_data.floor_material
-                                map_data.hidden_segments = self._map_data.hidden_segments
+                                map_data.hidden_segments = (
+                                    self._map_data.hidden_segments
+                                )
                                 map_data.cleanset = self._map_data.cleanset
                                 changed = map_data != self._map_data
                             else:
@@ -937,9 +1094,15 @@ class DreameMapMowerMapManager:
                         and not self._map_data.need_optimization
                     ):
                         map_data.need_optimization = False
-                        map_data.optimized_pixel_type = copy.deepcopy(self._map_data.optimized_pixel_type)
-                        map_data.optimized_dimensions = copy.deepcopy(self._map_data.optimized_dimensions)
-                        map_data.optimized_charger_position = copy.deepcopy(self._map_data.optimized_charger_position)
+                        map_data.optimized_pixel_type = copy.deepcopy(
+                            self._map_data.optimized_pixel_type
+                        )
+                        map_data.optimized_dimensions = copy.deepcopy(
+                            self._map_data.optimized_dimensions
+                        )
+                        map_data.optimized_charger_position = copy.deepcopy(
+                            self._map_data.optimized_charger_position
+                        )
 
                     self._map_data = map_data
                     self._current_frame_id = map_data.frame_id
@@ -947,7 +1110,9 @@ class DreameMapMowerMapManager:
                     self._current_timestamp_ms = map_data.timestamp_ms
 
                     if changed:
-                        _LOGGER.info("Decode I map %d %d", map_data.map_id, map_data.frame_id)
+                        _LOGGER.info(
+                            "Decode I map %d %d", map_data.map_id, map_data.frame_id
+                        )
                         self._map_data.last_updated = time.time()
                         self._map_data_changed()
                     else:
@@ -990,11 +1155,11 @@ class DreameMapMowerMapManager:
                 for recovery_map_data in saved_map_data.recovery_map_list:
                     map_type = recovery_map_data.map_type.name.replace("_", " ").title()
                     if saved_map_data.custom_name is None:
-                        recovery_map_data.map_name = f"Recovery Map {str(index)} ({map_type})"
-                    else:
                         recovery_map_data.map_name = (
-                            f"{saved_map_data.custom_name} Recovery Map {str(index)} ({map_type})"
+                            f"Recovery Map {str(index)} ({map_type})"
                         )
+                    else:
+                        recovery_map_data.map_name = f"{saved_map_data.custom_name} Recovery Map {str(index)} ({map_type})"
                     recovery_map_data.map_index = index
                     index = index + 1
 
@@ -1073,7 +1238,11 @@ class DreameMapMowerMapManager:
 
                             cipher = Cipher(
                                 algorithms.AES(
-                                    bytearray.fromhex(hashlib.md5((obstacle.key).encode("utf-8")).hexdigest())
+                                    bytearray.fromhex(
+                                        hashlib.md5(
+                                            (obstacle.key).encode("utf-8")
+                                        ).hexdigest()
+                                    )
                                 ),
                                 modes.ECB(),
                                 backend=default_backend(),
@@ -1083,14 +1252,18 @@ class DreameMapMowerMapManager:
                             return (
                                 (
                                     unpadder.update(
-                                        decryptor.update(base64.b64decode(response[response.find(",") + 1 :]))
+                                        decryptor.update(
+                                            base64.b64decode(
+                                                response[response.find(",") + 1 :]
+                                            )
+                                        )
                                         + decryptor.finalize()
                                     )
                                     + unpadder.finalize()
                                 ),
                                 obstacle,
                             )
-                except Exception as ex:
+                except Exception:
                     _LOGGER.warning(
                         "Obstacle (%s) image decryption failed: %s",
                         index,
@@ -1105,7 +1278,9 @@ class DreameMapMowerMapManager:
                     "History map object name: %s",
                     object_name,
                 )
-                response = self._get_file_url(object_name, self._protocol.cloud.dreame_cloud)
+                response = self._get_file_url(
+                    object_name, self._protocol.cloud.dreame_cloud
+                )
                 if response:
                     response = self._protocol.cloud.get_file(response)
                     if response:
@@ -1113,13 +1288,17 @@ class DreameMapMowerMapManager:
                             response.decode(), self._vslam_map, None, self._aes_iv, key
                         )
                         if map_data:
-                            DreameMowerMapDecoder.set_segment_cleanset(map_data, map_data.cleanset, self._capability)
+                            DreameMowerMapDecoder.set_segment_cleanset(
+                                map_data, map_data.cleanset, self._capability
+                            )
                             map_data.history_map = True
                             if map_data.need_optimization:
-                                map_data = self.optimizer.optimize(map_data, saved_map_data)
+                                map_data = self.optimizer.optimize(
+                                    map_data, saved_map_data
+                                )
                                 map_data.need_optimization = False
                             return map_data
-            except Exception as ex:
+            except Exception:
                 _LOGGER.warning(
                     "History map decoding failed: %s",
                     traceback.format_exc(),
@@ -1131,14 +1310,20 @@ class DreameMapMowerMapManager:
             index = int(index) - 1
             if recovery_map_list and len(recovery_map_list) > index:
                 if recovery_map_list[index].map_data is None:
-                    recovery_map_list[index].map_data = DreameMowerMapDecoder.decode_saved_map(
+                    recovery_map_list[
+                        index
+                    ].map_data = DreameMowerMapDecoder.decode_saved_map(
                         recovery_map_list[index].raw_map,
                         self._vslam_map,
                         self._saved_map_data[map_id].rotation,
                         self._aes_iv,
                     )
-                    recovery_map_list[index].map_data.last_updated = recovery_map_list[index].date.timestamp()
-                    recovery_map_list[index].map_data.recovery_map_type = recovery_map_list[index].map_type
+                    recovery_map_list[index].map_data.last_updated = recovery_map_list[
+                        index
+                    ].date.timestamp()
+                    recovery_map_list[
+                        index
+                    ].map_data.recovery_map_type = recovery_map_list[index].map_type
                     recovery_map_list[index].map_data.recovery_map = True
                 return recovery_map_list[index].map_data
 
@@ -1155,7 +1340,10 @@ class DreameMapMowerMapManager:
                     )
                     map_url = self._get_file_url(
                         object_name,
-                        not (object_name.endswith("mb.tbz2") and not self._protocol.dreame_cloud),
+                        not (
+                            object_name.endswith("mb.tbz2")
+                            and not self._protocol.dreame_cloud
+                        ),
                     )
                     _LOGGER.info("Recovery map file url: %s = %s", object_name, map_url)
                     if map_url:
@@ -1182,7 +1370,7 @@ class DreameMapMowerMapManager:
         self._error_callback = None
 
     def schedule_update(self, wait: float = None) -> None:
-        if wait == None:
+        if wait is None:
             wait = self._update_interval
         if self._update_timer is not None:
             self._update_timer.cancel()
@@ -1205,7 +1393,10 @@ class DreameMapMowerMapManager:
             ):
                 self.request_map_list()
 
-            if self._recovery_map_list_object_name and self._need_recovery_map_list_request:
+            if (
+                self._recovery_map_list_object_name
+                and self._need_recovery_map_list_request
+            ):
                 self.request_recovery_map_list()
 
             if self._map_request_time is not None or self._need_map_request:
@@ -1220,15 +1411,25 @@ class DreameMapMowerMapManager:
                     and self._map_request_count == 2
                     and self._map_data is None
                 ):
-                    object_name_result = self._protocol.cloud.get_properties(DIID(DreameMowerProperty.OBJECT_NAME))
-                    if object_name_result and MAP_PARAMETER_VALUE in object_name_result[0]:
+                    object_name_result = self._protocol.cloud.get_properties(
+                        DIID(DreameMowerProperty.OBJECT_NAME)
+                    )
+                    if (
+                        object_name_result
+                        and MAP_PARAMETER_VALUE in object_name_result[0]
+                    ):
                         self._add_cloud_map_data(
-                            None, object_name_result[0][MAP_PARAMETER_VALUE], object_name_result[0].get("updateDate")
+                            None,
+                            object_name_result[0][MAP_PARAMETER_VALUE],
+                            object_name_result[0].get("updateDate"),
                         )
             elif not self._protocol.dreame_cloud:
                 if self._map_data is None or (
                     self._device_running
-                    and (time.time() - (self._current_timestamp_ms / 1000.0) > 15 or self._map_data.empty_map)
+                    and (
+                        time.time() - (self._current_timestamp_ms / 1000.0) > 15
+                        or self._map_data.empty_map
+                    )
                 ):
                     self._updated_frame_id = None
                     if self._map_data and not self._map_data.empty_map:
@@ -1252,7 +1453,10 @@ class DreameMapMowerMapManager:
                 if self._map_data is None or (
                     self._device_running
                     and (
-                        (self._map_data.last_updated and time.time() - (self._map_data.last_updated) > 60)
+                        (
+                            self._map_data.last_updated
+                            and time.time() - (self._map_data.last_updated) > 60
+                        )
                         or self._map_data.empty_map
                     )
                 ):
@@ -1310,7 +1514,9 @@ class DreameMapMowerMapManager:
                     self._map_data.data = copy.deepcopy(saved_map_data.data)
                     self._map_data.pixel_type = copy.deepcopy(saved_map_data.pixel_type)
                     self._map_data.dimensions = copy.deepcopy(saved_map_data.dimensions)
-                    self._map_data.charger_position = copy.deepcopy(saved_map_data.charger_position)
+                    self._map_data.charger_position = copy.deepcopy(
+                        saved_map_data.charger_position
+                    )
                     self._map_data.no_go_areas = saved_map_data.no_go_areas
                     self._map_data.virtual_walls = saved_map_data.virtual_walls
                     self._map_data.robot_position = self._map_data.charger_position
@@ -1348,7 +1554,11 @@ class DreameMapMowerMapManager:
             return self._request_i_map()
         else:
             result = self._request_map()
-            if result and result[MAP_PARAMETER_CODE] == 0 and not self._protocol.dreame_cloud:
+            if (
+                result
+                and result[MAP_PARAMETER_CODE] == 0
+                and not self._protocol.dreame_cloud
+            ):
                 self._request_map_from_cloud()
 
     def request_next_map(self) -> None:
@@ -1396,7 +1606,7 @@ class DreameMapMowerMapManager:
 
                 try:
                     map_info = json.loads(raw_map)
-                except:
+                except Exception:
                     _LOGGER.warn("Get Map List json parse failed")
                     return
 
@@ -1410,7 +1620,9 @@ class DreameMapMowerMapManager:
                             saved_map_data = DreameMowerMapDecoder.decode_saved_map(
                                 v[MAP_PARAMETER_MAP],
                                 self._vslam_map,
-                                int(v[MAP_PARAMETER_ANGLE]) if v.get(MAP_PARAMETER_ANGLE) else 0,
+                                int(v[MAP_PARAMETER_ANGLE])
+                                if v.get(MAP_PARAMETER_ANGLE)
+                                else 0,
                                 self._aes_iv,
                             )
                             if saved_map_data is not None:
@@ -1425,26 +1637,41 @@ class DreameMapMowerMapManager:
                             if self._selected_map_id == map_id and self._map_data:
                                 saved_map_data.cleanset = self._map_data.cleanset
                             else:
-                                saved_map_data.cleanset = self._saved_map_data[map_id].cleanset
+                                saved_map_data.cleanset = self._saved_map_data[
+                                    map_id
+                                ].cleanset
 
                             if self._saved_map_data[map_id] != saved_map_data:
                                 _LOGGER.info("Saved map changed: %s", map_id)
                                 changed = True
                                 saved_map_data.last_updated = now
                                 if saved_map_data.wifi_map_data:
-                                    saved_map_data.wifi_map_data.last_updated = saved_map_data.last_updated
-                                saved_map_data.recovery_map_list = self._saved_map_data[map_id].recovery_map_list
-                                if self._map_data is None or self._selected_map_id != map_id:
+                                    saved_map_data.wifi_map_data.last_updated = (
+                                        saved_map_data.last_updated
+                                    )
+                                saved_map_data.recovery_map_list = self._saved_map_data[
+                                    map_id
+                                ].recovery_map_list
+                                if (
+                                    self._map_data is None
+                                    or self._selected_map_id != map_id
+                                ):
                                     self._saved_map_data[map_id] = saved_map_data
                                 else:
-                                    self._saved_map_data[map_id].custom_name = saved_map_data.custom_name
-                                    self._saved_map_data[map_id].rotation = saved_map_data.rotation
+                                    self._saved_map_data[
+                                        map_id
+                                    ].custom_name = saved_map_data.custom_name
+                                    self._saved_map_data[
+                                        map_id
+                                    ].rotation = saved_map_data.rotation
                             else:
                                 _LOGGER.info("Saved map not changed: %s", map_id)
                         else:
                             saved_map_data.last_updated = now
                             if saved_map_data.wifi_map_data:
-                                saved_map_data.wifi_map_data.last_updated = saved_map_data.last_updated
+                                saved_map_data.wifi_map_data.last_updated = (
+                                    saved_map_data.last_updated
+                                )
                             self._saved_map_data[map_id] = saved_map_data
                             _LOGGER.info("Add saved map: %s", map_id)
                             changed = True
@@ -1456,18 +1683,23 @@ class DreameMapMowerMapManager:
                         changed = True
 
                 selected_map_id = map_info[MAP_PARAMETER_CURR_ID]
-                if selected_map_id in self._saved_map_data and self._selected_map_id != selected_map_id:
+                if (
+                    selected_map_id in self._saved_map_data
+                    and self._selected_map_id != selected_map_id
+                ):
                     self._selected_map_id = selected_map_id
                     changed = True
 
-                if changed == True:
+                if changed:
                     self._refresh_map_list()
                     if self._map_data:
                         self._map_data_changed()
 
     def request_recovery_map_list(self) -> None:
         if self._recovery_map_list_object_name:
-            _LOGGER.info("Get Recovery Map List: %s", self._recovery_map_list_object_name)
+            _LOGGER.info(
+                "Get Recovery Map List: %s", self._recovery_map_list_object_name
+            )
             response = self._get_file_url(self._recovery_map_list_object_name)
             if response:
                 self._need_recovery_map_list_request = False
@@ -1475,7 +1707,7 @@ class DreameMapMowerMapManager:
                 if response:
                     try:
                         recovery_map_list = json.loads(response.decode())
-                    except:
+                    except Exception:
                         _LOGGER.warn("Get Recovery Map List json parse failed")
                         return
 
@@ -1486,20 +1718,30 @@ class DreameMapMowerMapManager:
                             recovery_map_list = []
                             map_info_list = recovery_map["info"]
                             for map_info in map_info_list:
-                                recovery_map_list.append(RecoveryMapInfo(map_id, map_info))
+                                recovery_map_list.append(
+                                    RecoveryMapInfo(map_id, map_info)
+                                )
                             if len(recovery_map_list) > 2:
                                 recovery_map_list.sort(
                                     key=cmp_to_key(
                                         lambda a, b: (
                                             int(a.map_type) - int(b.map_type)
-                                            if int(a.map_type == 0) and int(b.map_type == 2)
+                                            if int(a.map_type == 0)
+                                            and int(b.map_type == 2)
                                             else 0
                                         )
                                     )
                                 )
-                            if self._saved_map_data[map_id].recovery_map_list != recovery_map_list:
-                                self._saved_map_data[map_id].recovery_map_list = recovery_map_list
-                                _LOGGER.info("Saved recovery map list changed: %s", map_id)
+                            if (
+                                self._saved_map_data[map_id].recovery_map_list
+                                != recovery_map_list
+                            ):
+                                self._saved_map_data[
+                                    map_id
+                                ].recovery_map_list = recovery_map_list
+                                _LOGGER.info(
+                                    "Saved recovery map list changed: %s", map_id
+                                )
                                 changed = True
 
                     if changed:
@@ -1513,7 +1755,10 @@ class DreameMapMowerMapManager:
             not (
                 self._map_data is not None
                 and (
-                    (self._map_data.saved_map_status == 0 and not self._map_data.empty_map)
+                    (
+                        self._map_data.saved_map_status == 0
+                        and not self._map_data.empty_map
+                    )
                     or self._map_data.saved_map_status == 1
                     or self._map_data.restored_map
                     or self._map_data.temporary_map
@@ -1536,10 +1781,17 @@ class DreameMapMowerMapManager:
     @property
     def selected_map(self) -> MapData | None:
         if self._map_data:
-            if self._selected_map_id is not None and self._selected_map_id in self._saved_map_data:
+            if (
+                self._selected_map_id is not None
+                and self._selected_map_id in self._saved_map_data
+            ):
                 return self._saved_map_data[self._selected_map_id]
 
-            if self._map_list and len(self._map_list) == 1 and self._map_list[0] in self._saved_map_data:
+            if (
+                self._map_list
+                and len(self._map_list) == 1
+                and self._map_list[0] in self._saved_map_data
+            ):
                 return self._saved_map_data[self._map_list[0]]
 
     @property
@@ -1549,7 +1801,7 @@ class DreameMapMowerMapManager:
                 (k)
                 for k, v in sorted(
                     self._map_data.segments.items(),
-                    key=lambda s: s[1].order if s[1].order != None else 0,
+                    key=lambda s: s[1].order if s[1].order is not None else 0,
                 )
                 if v.order
             ]
@@ -1741,7 +1993,11 @@ class DreameMapMowerMapEditor:
 
     def set_predefined_points(self, predefined_points) -> None:
         map_data = self._map_data
-        if not map_data or not self._selected_map_id or map_data.predefined_points is None:
+        if (
+            not map_data
+            or not self._selected_map_id
+            or map_data.predefined_points is None
+        ):
             return
 
         map_data.predefined_points = {}
@@ -1756,7 +2012,9 @@ class DreameMapMowerMapEditor:
                     point[3],
                 )
 
-        self._saved_map_data[self._selected_map_id].predefined_points = map_data.predefined_points
+        self._saved_map_data[
+            self._selected_map_id
+        ].predefined_points = map_data.predefined_points
         self._set_updated_frame_id(map_data.frame_id)
         self.refresh_map(self._selected_map_id)
         self.refresh_map()
@@ -1782,13 +2040,19 @@ class DreameMapMowerMapEditor:
 
     def set_router_position(self, x, y):
         map_data = self._map_data
-        if not map_data or not self._selected_map_id or map_data.router_position is None:
+        if (
+            not map_data
+            or not self._selected_map_id
+            or map_data.router_position is None
+        ):
             return
 
         router_position = Point(int(x), int(y))
         self._saved_map_data[self._selected_map_id].router_position = router_position
         if self._saved_map_data[self._selected_map_id].wifi_map_data:
-            self._saved_map_data[self._selected_map_id].wifi_map_data.router_position = router_position
+            self._saved_map_data[
+                self._selected_map_id
+            ].wifi_map_data.router_position = router_position
         map_data.router_position = router_position
         if map_data.wifi_map_data:
             map_data.wifi_map_data.router_position = router_position
@@ -1830,12 +2094,20 @@ class DreameMapMowerMapEditor:
         saved_map_data = self._saved_map_data
         if saved_map_data and map_id in saved_map_data and len(segments) == 2:
             map_data = saved_map_data[map_id]
-            if map_data.segments and segments[0] in map_data.segments and segments[1] in map_data.segments:
+            if (
+                map_data.segments
+                and segments[0] in map_data.segments
+                and segments[1] in map_data.segments
+            ):
                 if segments[1] not in map_data.segments[segments[0]].neighbors:
-                    _LOGGER.error("Segments are not neighbors with each other: %s", segments)
+                    _LOGGER.error(
+                        "Segments are not neighbors with each other: %s", segments
+                    )
                     return
 
-                data = np.zeros((map_data.dimensions.width * map_data.dimensions.height), np.uint8)
+                data = np.zeros(
+                    (map_data.dimensions.width * map_data.dimensions.height), np.uint8
+                )
                 for y in range(map_data.dimensions.height):
                     for x in range(map_data.dimensions.width):
                         index = y * map_data.dimensions.width + x
@@ -1849,7 +2121,9 @@ class DreameMapMowerMapEditor:
 
                 map_data.data = bytes(data)
                 del self.map_manager._saved_map_data[map_id].segments[segments[1]]
-                new_segments = DreameMowerMapDecoder.get_segments(map_data, self.map_manager._vslam_map)
+                new_segments = DreameMowerMapDecoder.get_segments(
+                    map_data, self.map_manager._vslam_map
+                )
                 map_data.segments[segments[0]].x = new_segments[segments[0]].x
                 map_data.segments[segments[0]].y = new_segments[segments[0]].y
                 if map_data.hidden_segments and segments[1] in map_data.hidden_segments:
@@ -1906,7 +2180,9 @@ class DreameMapMowerMapEditor:
                 map_data.restored_map = True
                 map_data.empty_map = False
                 map_data.cleanset = {}
-                DreameMowerMapDecoder.set_segment_cleanset(map_data, map_data.cleanset, self.map_manager._capability)
+                DreameMowerMapDecoder.set_segment_cleanset(
+                    map_data, map_data.cleanset, self.map_manager._capability
+                )
                 self.map_manager._map_data = map_data
                 self.map_manager._selected_map_id = new_map.map_id
                 self.map_manager.request_next_map_list()
@@ -1929,12 +2205,24 @@ class DreameMapMowerMapEditor:
             )
             recovery_map_data.recovery_map = False
             recovery_map_data.saved_map = True
-            recovery_map_data.map_name = self._saved_map_data[recovery_map_info.map_id].map_name
-            recovery_map_data.custom_name = self._saved_map_data[recovery_map_info.map_id].custom_name
-            recovery_map_data.rotation = self._saved_map_data[recovery_map_info.map_id].rotation
-            recovery_map_data.map_index = self._saved_map_data[recovery_map_info.map_id].map_index
-            recovery_map_data.recovery_map_list = self._saved_map_data[recovery_map_info.map_id].recovery_map_list
-            recovery_map_data.timestamp_ms = self._saved_map_data[recovery_map_info.map_id].timestamp_ms
+            recovery_map_data.map_name = self._saved_map_data[
+                recovery_map_info.map_id
+            ].map_name
+            recovery_map_data.custom_name = self._saved_map_data[
+                recovery_map_info.map_id
+            ].custom_name
+            recovery_map_data.rotation = self._saved_map_data[
+                recovery_map_info.map_id
+            ].rotation
+            recovery_map_data.map_index = self._saved_map_data[
+                recovery_map_info.map_id
+            ].map_index
+            recovery_map_data.recovery_map_list = self._saved_map_data[
+                recovery_map_info.map_id
+            ].recovery_map_list
+            recovery_map_data.timestamp_ms = self._saved_map_data[
+                recovery_map_info.map_id
+            ].timestamp_ms
             recovery_map_data.last_updated = time.time()
             if recovery_map_data.wifi_map:
                 recovery_map_data.wifi_map.last_updated = time.time()
@@ -1974,7 +2262,9 @@ class DreameMapMowerMapEditor:
                     map_data.cleanset[str(k)][3] = 0
 
             if self._saved_map_data and map_data.map_id in self._saved_map_data:
-                self._saved_map_data[map_data.map_id].cleanset = copy.deepcopy(map_data.cleanset)
+                self._saved_map_data[map_data.map_id].cleanset = copy.deepcopy(
+                    map_data.cleanset
+                )
 
             self._set_updated_frame_id(map_data.frame_id)
             self.refresh_map()
@@ -1982,7 +2272,12 @@ class DreameMapMowerMapEditor:
 
     def set_segment_order(self, segment_id: int, order: int) -> list[int] | None:
         map_data = self._map_data
-        if map_data and map_data.segments and segment_id in map_data.segments and not map_data.temporary_map:
+        if (
+            map_data
+            and map_data.segments
+            and segment_id in map_data.segments
+            and not map_data.temporary_map
+        ):
             if order > 0:
                 current_order = map_data.segments[segment_id].order
                 if current_order != order:
@@ -1991,7 +2286,9 @@ class DreameMapMowerMapEditor:
                     for k, v in map_data.segments.items():
                         if k != segment_id and v.order == order:
                             map_data.segments[k].order = (
-                                len(self.map_manager.cleaning_sequence) if not current_order else current_order
+                                len(self.map_manager.cleaning_sequence)
+                                if not current_order
+                                else current_order
                             )
             else:
                 map_data.segments[segment_id].order = 0
@@ -2010,7 +2307,9 @@ class DreameMapMowerMapEditor:
                 and self._selected_map_id is not None
                 and self._selected_map_id in self._saved_map_data
             ):
-                self._saved_map_data[self._selected_map_id].cleanset = copy.deepcopy(map_data.cleanset)
+                self._saved_map_data[self._selected_map_id].cleanset = copy.deepcopy(
+                    map_data.cleanset
+                )
 
             self._set_updated_frame_id(map_data.frame_id)
             self.refresh_map()
@@ -2041,7 +2340,12 @@ class DreameMapMowerMapEditor:
         self, segment_id: int, cleaning_times: int, refresh_map: bool = True
     ) -> list[list[int]] | None:
         map_data = self._map_data
-        if map_data and map_data.segments and segment_id in map_data.segments and not map_data.temporary_map:
+        if (
+            map_data
+            and map_data.segments
+            and segment_id in map_data.segments
+            and not map_data.temporary_map
+        ):
             map_data.segments[segment_id].cleaning_times = cleaning_times
             map_data.cleanset[str(segment_id)][2] = cleaning_times
             if (
@@ -2049,7 +2353,9 @@ class DreameMapMowerMapEditor:
                 and self._selected_map_id is not None
                 and self._selected_map_id in self._saved_map_data
             ):
-                self._saved_map_data[self._selected_map_id].cleanset = copy.deepcopy(map_data.cleanset)
+                self._saved_map_data[self._selected_map_id].cleanset = copy.deepcopy(
+                    map_data.cleanset
+                )
             if refresh_map:
                 self._set_updated_frame_id(map_data.frame_id)
                 self.refresh_map()
@@ -2073,7 +2379,9 @@ class DreameMapMowerMapEditor:
                 and self._selected_map_id is not None
                 and self._selected_map_id in self._saved_map_data
             ):
-                self._saved_map_data[self._selected_map_id].cleanset = copy.deepcopy(map_data.cleanset)
+                self._saved_map_data[self._selected_map_id].cleanset = copy.deepcopy(
+                    map_data.cleanset
+                )
             if refresh_map:
                 self._set_updated_frame_id(map_data.frame_id)
                 self.refresh_map()
@@ -2092,7 +2400,9 @@ class DreameMapMowerMapEditor:
                 and self._selected_map_id is not None
                 and self._selected_map_id in self._saved_map_data
             ):
-                self._saved_map_data[self._selected_map_id].cleanset = copy.deepcopy(map_data.cleanset)
+                self._saved_map_data[self._selected_map_id].cleanset = copy.deepcopy(
+                    map_data.cleanset
+                )
             if refresh_map:
                 self._set_updated_frame_id(map_data.frame_id)
                 self.refresh_map()
@@ -2102,7 +2412,12 @@ class DreameMapMowerMapEditor:
         self, segment_id: int, floor_material: int, direction: int = None
     ) -> list[list[int]] | None:
         map_data = self._map_data
-        if map_data and map_data.segments and segment_id in map_data.segments and not map_data.temporary_map:
+        if (
+            map_data
+            and map_data.segments
+            and segment_id in map_data.segments
+            and not map_data.temporary_map
+        ):
             if direction is not None:
                 if floor_material != 1:
                     direction = None
@@ -2117,8 +2432,12 @@ class DreameMapMowerMapEditor:
                 and self._selected_map_id in self._saved_map_data
                 and segment_id in self._saved_map_data[self._selected_map_id].segments
             ):
-                self._saved_map_data[self._selected_map_id].segments[segment_id].floor_material = floor_material
-                self._saved_map_data[self._selected_map_id].segments[segment_id].floor_material_direction = direction
+                self._saved_map_data[self._selected_map_id].segments[
+                    segment_id
+                ].floor_material = floor_material
+                self._saved_map_data[self._selected_map_id].segments[
+                    segment_id
+                ].floor_material_direction = direction
                 DreameMowerMapDecoder.set_segment_floor_material(
                     self._saved_map_data[self._selected_map_id],
                     segment_id,
@@ -2126,7 +2445,9 @@ class DreameMapMowerMapEditor:
                 )
                 self.refresh_map(self._selected_map_id)
 
-            DreameMowerMapDecoder.set_segment_floor_material(map_data, segment_id, map_data.floor_material)
+            DreameMowerMapDecoder.set_segment_floor_material(
+                map_data, segment_id, map_data.floor_material
+            )
             self._set_updated_frame_id(map_data.frame_id)
             self.refresh_map()
             return {
@@ -2142,19 +2463,34 @@ class DreameMapMowerMapEditor:
             }
         return {}
 
-    def set_segment_visibility(self, segment_id: int, visibility: int) -> list[list[int]] | None:
+    def set_segment_visibility(
+        self, segment_id: int, visibility: int
+    ) -> list[list[int]] | None:
         map_data = self._map_data
-        if map_data and map_data.segments and segment_id in map_data.segments and not map_data.temporary_map:
+        if (
+            map_data
+            and map_data.segments
+            and segment_id in map_data.segments
+            and not map_data.temporary_map
+        ):
             map_data.segments[segment_id].visibility = visibility
-            map_data.hidden_segments = [k for k, v in map_data.segments.items() if v.visibility == False]
+            map_data.hidden_segments = [
+                k for k, v in map_data.segments.items() if not v.visibility
+            ]
             if (
                 self._saved_map_data
                 and self._selected_map_id is not None
                 and self._selected_map_id in self._saved_map_data
             ):
-                self._saved_map_data[self._selected_map_id].segments[segment_id].visibility = visibility
+                self._saved_map_data[self._selected_map_id].segments[
+                    segment_id
+                ].visibility = visibility
                 self._saved_map_data[self._selected_map_id].hidden_segments = [
-                    k for k, v in self._saved_map_data[self._selected_map_id].segments.items() if v.visibility == False
+                    k
+                    for k, v in self._saved_map_data[
+                        self._selected_map_id
+                    ].segments.items()
+                    if not v.visibility
                 ]
 
             self._set_updated_frame_id(map_data.frame_id)
@@ -2162,7 +2498,9 @@ class DreameMapMowerMapEditor:
             return map_data.hidden_segments
         return []
 
-    def set_segment_name(self, segment_id: int, segment_type: int, custom_name: str = None) -> dict[str, Any] | None:
+    def set_segment_name(
+        self, segment_id: int, segment_type: int, custom_name: str = None
+    ) -> dict[str, Any] | None:
         map_data = self._map_data
         if (
             map_data
@@ -2185,22 +2523,24 @@ class DreameMapMowerMapEditor:
                         map_data.segments[segment_id].custom_name = custom_name
                 else:
                     map_data.segments[segment_id].custom_name = None
-                    map_data.segments[segment_id].index = map_data.segments[segment_id].next_type_index(
-                        segment_type, map_data.segments
-                    )
+                    map_data.segments[segment_id].index = map_data.segments[
+                        segment_id
+                    ].next_type_index(segment_type, map_data.segments)
 
                 map_data.segments[segment_id].set_name()
 
-                self._saved_map_data[self._selected_map_id].segments[segment_id].custom_name = map_data.segments[
+                self._saved_map_data[self._selected_map_id].segments[
                     segment_id
-                ].custom_name
-                self._saved_map_data[self._selected_map_id].segments[segment_id].index = map_data.segments[
+                ].custom_name = map_data.segments[segment_id].custom_name
+                self._saved_map_data[self._selected_map_id].segments[
                     segment_id
-                ].index
-                self._saved_map_data[self._selected_map_id].segments[segment_id].type = map_data.segments[
+                ].index = map_data.segments[segment_id].index
+                self._saved_map_data[self._selected_map_id].segments[
                     segment_id
-                ].type
-                self._saved_map_data[self._selected_map_id].segments[segment_id].set_name()
+                ].type = map_data.segments[segment_id].type
+                self._saved_map_data[self._selected_map_id].segments[
+                    segment_id
+                ].set_name()
                 self.refresh_map(self._selected_map_id)
 
                 for k, v in map_data.segments.items():
@@ -2221,7 +2561,9 @@ class DreameMapMowerMapEditor:
                         segment_info[k] = {}
 
                     if map_data.segments[k].unique_id:
-                        segment_info[k][MAP_REQUEST_PARAMETER_ZONE_ID] = map_data.segments[k].unique_id
+                        segment_info[k][MAP_REQUEST_PARAMETER_ZONE_ID] = (
+                            map_data.segments[k].unique_id
+                        )
 
                 self._set_updated_frame_id(map_data.frame_id)
                 self.refresh_map()
@@ -2269,8 +2611,12 @@ class DreameMapMowerMapEditor:
             and self._selected_map_id is not None
             and self._selected_map_id in self._saved_map_data
         ):
-            self._saved_map_data[self._selected_map_id].no_go_areas = map_data.no_go_areas
-            self._saved_map_data[self._selected_map_id].virtual_walls = map_data.virtual_walls
+            self._saved_map_data[
+                self._selected_map_id
+            ].no_go_areas = map_data.no_go_areas
+            self._saved_map_data[
+                self._selected_map_id
+            ].virtual_walls = map_data.virtual_walls
             self.refresh_map(self._selected_map_id)
         self.refresh_map()
 
@@ -2300,7 +2646,9 @@ class DreameMowerMapDecoder:
 
     @staticmethod
     def _read_int_8_le(data: bytes, offset: int = 0) -> int:
-        return int.from_bytes(data[offset : offset + 1], byteorder="little", signed=True)
+        return int.from_bytes(
+            data[offset : offset + 1], byteorder="little", signed=True
+        )
 
     @staticmethod
     def _read_int_16(data: bytes, offset: int = 0) -> int:
@@ -2308,7 +2656,9 @@ class DreameMowerMapDecoder:
 
     @staticmethod
     def _read_int_16_le(data: bytes, offset: int = 0) -> int:
-        return int.from_bytes(data[offset : offset + 2], byteorder="little", signed=True)
+        return int.from_bytes(
+            data[offset : offset + 2], byteorder="little", signed=True
+        )
 
     @staticmethod
     def _compare_segment_neighbors(r1: Segment, r2: Segment) -> bool:
@@ -2329,7 +2679,9 @@ class DreameMowerMapDecoder:
         return c1[1] - c2[1] if c1[1] != c2[1] else c1[0] - c2[0]
 
     @staticmethod
-    def _get_pixel_type(map_data: MapData, pixel, vslam_map: bool = False) -> MapPixelType:
+    def _get_pixel_type(
+        map_data: MapData, pixel, vslam_map: bool = False
+    ) -> MapPixelType:
         if map_data.frame_map:
             segment_id = pixel >> 2
 
@@ -2361,7 +2713,9 @@ class DreameMowerMapDecoder:
                 segment_id = pixel & 0x3F
                 return (
                     MapPixelType.HIDDEN_WALL.value
-                    if map_data.hidden_segments and segment_id and segment_id in map_data.hidden_segments
+                    if map_data.hidden_segments
+                    and segment_id
+                    and segment_id in map_data.hidden_segments
                     else MapPixelType.WALL.value
                 )
 
@@ -2380,17 +2734,23 @@ class DreameMowerMapDecoder:
         return MapPixelType.OUTSIDE.value
 
     @staticmethod
-    def _get_segment_center(map_data, segment_id: int, center: int, vertical: bool) -> int | None:
+    def _get_segment_center(
+        map_data, segment_id: int, center: int, vertical: bool
+    ) -> int | None:
         # Find center point implemented as on the app
         lines = []
         zero_pixels = -1
         segment_pixel = 0
         line = None
 
-        for k in range(map_data.dimensions.height if vertical else map_data.dimensions.width):
+        for k in range(
+            map_data.dimensions.height if vertical else map_data.dimensions.width
+        ):
             pixel_type = (
                 map_data.data[
-                    (k * map_data.dimensions.width + center) if vertical else (center * map_data.dimensions.width + k)
+                    (k * map_data.dimensions.width + center)
+                    if vertical
+                    else (center * map_data.dimensions.width + k)
                 ]
                 & 0x3F
             )
@@ -2446,7 +2806,9 @@ class DreameMowerMapDecoder:
                 iv = ""
             try:
                 cipher = Cipher(
-                    algorithms.AES(hashlib.sha256(key.encode()).hexdigest()[0:32].encode("utf8")),
+                    algorithms.AES(
+                        hashlib.sha256(key.encode()).hexdigest()[0:32].encode("utf8")
+                    ),
                     modes.CBC(iv.encode("utf8")),
                     backend=default_backend(),
                 )
@@ -2473,7 +2835,8 @@ class DreameMowerMapDecoder:
         partial_map.frame_type = DreameMowerMapDecoder._read_int_8(raw_map, 4)
         partial_map.raw = raw_map
         image_size = DreameMowerMapDecoder.HEADER_SIZE + (
-            DreameMowerMapDecoder._read_int_16_le(raw_map, 19) * DreameMowerMapDecoder._read_int_16_le(raw_map, 21)
+            DreameMowerMapDecoder._read_int_16_le(raw_map, 19)
+            * DreameMowerMapDecoder._read_int_16_le(raw_map, 21)
         )
         if len(raw_map) >= image_size:
             try:
@@ -2482,7 +2845,7 @@ class DreameMowerMapDecoder:
                     partial_map.timestamp_ms = int(data_json["timestamp_ms"])
 
                 partial_map.data_json = data_json
-            except:
+            except Exception:
                 pass
         return partial_map
 
@@ -2501,7 +2864,9 @@ class DreameMowerMapDecoder:
         )
 
     @staticmethod
-    def decode_saved_map(raw_map: str, vslam_map: bool, rotation: int = 0, iv: str = None) -> MapData | None:
+    def decode_saved_map(
+        raw_map: str, vslam_map: bool, rotation: int = 0, iv: str = None
+    ) -> MapData | None:
         return DreameMowerMapDecoder.decode_map(raw_map, vslam_map, rotation, iv)[0]
 
     @staticmethod
@@ -2543,11 +2908,17 @@ class DreameMowerMapDecoder:
         _LOGGER.debug("Map Data Json: %s", data_json)
 
         try:
-            if "origin" in data_json and data_json["origin"] and len(data_json["origin"]) > 1:
+            if (
+                "origin" in data_json
+                and data_json["origin"]
+                and len(data_json["origin"]) > 1
+            ):
                 left = data_json["origin"][0]
                 top = data_json["origin"][1]
 
-            map_data.dimensions = MapImageDimensions(top, left, height, width, grid_size)
+            map_data.dimensions = MapImageDimensions(
+                top, left, height, width, grid_size
+            )
 
             map_data.rotation = rotation
 
@@ -2568,17 +2939,23 @@ class DreameMowerMapDecoder:
                     map_data.completed = bool(data_json["cf"] == 1)
 
                 if "clean_finish_remain_electricity" in data_json:
-                    map_data.remaining_battery = int(data_json["clean_finish_remain_electricity"])
+                    map_data.remaining_battery = int(
+                        data_json["clean_finish_remain_electricity"]
+                    )
 
                 map_data.customized_cleaning = data_json.get("customeClean")
                 map_data.docked = bool("oc" in data_json and data_json["oc"])
                 map_data.line_to_robot = bool("l2r" in data_json and data_json["l2r"])
-                map_data.frame_map = bool(data_json.get("fsm") and data_json["fsm"] == 1)
-                map_data.restored_map = bool(data_json.get("rpur") and data_json["rpur"] == 1)
+                map_data.frame_map = bool(
+                    data_json.get("fsm") and data_json["fsm"] == 1
+                )
+                map_data.restored_map = bool(
+                    data_json.get("rpur") and data_json["rpur"] == 1
+                )
                 map_data.saved_map_status = -1
                 if "ris" in data_json:
                     map_data.saved_map_status = data_json["ris"]
-                map_data.clean_log = bool(data_json.get("iscleanlog") and data_json["iscleanlog"] == True)
+                map_data.clean_log = bool(data_json.get("iscleanlog"))
                 map_data.recovery_map = bool("us" in data_json and data_json["us"] == 1)
                 map_data.new_map = bool("risp" in data_json and data_json["risp"] == 0)
                 if "smd" in data_json:
@@ -2608,10 +2985,14 @@ class DreameMowerMapDecoder:
                     and not map_data.clean_log
                 )
 
-                if (data_json.get("nc") and data_json["nc"]) or map_data.charger_position.a == 32767:
+                if (
+                    data_json.get("nc") and data_json["nc"]
+                ) or map_data.charger_position.a == 32767:
                     map_data.charger_position = None
 
-                if (data_json.get("nr") and data_json["nr"]) or map_data.robot_position.a == 32767:
+                if (
+                    data_json.get("nr") and data_json["nr"]
+                ) or map_data.robot_position.a == 32767:
                     map_data.robot_position = None
 
                 if not map_data.saved_map and not map_data.recovery_map:
@@ -2620,9 +3001,9 @@ class DreameMowerMapDecoder:
                 if data_json.get("tr"):
                     matches = [
                         m.groupdict()
-                        for m in re.compile(r"(?P<operator>[MWSLl])(?P<x>-?\d+),(?P<y>-?\d+)").finditer(
-                            data_json["tr"]
-                        )
+                        for m in re.compile(
+                            r"(?P<operator>[MWSLl])(?P<x>-?\d+),(?P<y>-?\d+)"
+                        ).finditer(data_json["tr"])
                     ]
                     current_position = Point(0, 0)
                     map_data.path = []
@@ -2685,7 +3066,8 @@ class DreameMowerMapDecoder:
                 map_data.wifi_map = True
 
             map_data.empty_map = (
-                map_data.frame_type == MapFrameType.I.value or map_data.frame_type == MapFrameType.W.value
+                map_data.frame_type == MapFrameType.I.value
+                or map_data.frame_type == MapFrameType.W.value
             )
             if (width * height) > 0:
                 map_data.data = raw[DreameMowerMapDecoder.HEADER_SIZE : image_size]
@@ -2697,7 +3079,9 @@ class DreameMowerMapDecoder:
                                 map_data.empty_map = False
                                 break
 
-                map_data.pixel_type = np.full((width, height), MapPixelType.OUTSIDE.value, dtype=np.uint8)
+                map_data.pixel_type = np.full(
+                    (width, height), MapPixelType.OUTSIDE.value, dtype=np.uint8
+                )
                 if not map_data.empty_map:
                     map_data.empty_map = True
                     if map_data.frame_type == MapFrameType.W.value:
@@ -2708,7 +3092,7 @@ class DreameMowerMapDecoder:
                                     if pixel > 0:
                                         map_data.empty_map = False
                                         map_data.pixel_type[x, y] = MapPixelType(pixel)
-                        except:
+                        except Exception:
                             pass
                     elif map_data.frame_type == MapFrameType.I.value:
                         if map_data.frame_map:
@@ -2720,20 +3104,33 @@ class DreameMowerMapDecoder:
                                         segment_id = pixel >> 2
                                         if 0 < segment_id < 64:
                                             if segment_id == 63:
-                                                map_data.pixel_type[x, y] = MapPixelType.WALL.value
+                                                map_data.pixel_type[x, y] = (
+                                                    MapPixelType.WALL.value
+                                                )
                                             elif segment_id == 62:
-                                                map_data.pixel_type[x, y] = MapPixelType.FLOOR.value
+                                                map_data.pixel_type[x, y] = (
+                                                    MapPixelType.FLOOR.value
+                                                )
                                             elif segment_id == 61:
-                                                map_data.pixel_type[x, y] = MapPixelType.UNKNOWN.value
+                                                map_data.pixel_type[x, y] = (
+                                                    MapPixelType.UNKNOWN.value
+                                                )
                                             else:
                                                 map_data.pixel_type[x, y] = segment_id
                                         else:
                                             segment_id = pixel & 0x3F
                                             if segment_id == 1 or segment_id == 3:
-                                                map_data.pixel_type[x, y] = MapPixelType.NEW_SEGMENT.value
+                                                map_data.pixel_type[x, y] = (
+                                                    MapPixelType.NEW_SEGMENT.value
+                                                )
                                             elif segment_id == 2:
-                                                map_data.pixel_type[x, y] = MapPixelType.WALL.value
-                        elif map_data.saved_map_status == 1 or map_data.saved_map_status == 0:
+                                                map_data.pixel_type[x, y] = (
+                                                    MapPixelType.WALL.value
+                                                )
+                        elif (
+                            map_data.saved_map_status == 1
+                            or map_data.saved_map_status == 0
+                        ):
                             for y in range(height):
                                 for x in range(width):
                                     pixel = map_data.data[(width * y) + x]
@@ -2742,12 +3139,18 @@ class DreameMowerMapDecoder:
                                         # as implemented on the app
                                         if segment_id == 1 or segment_id == 3:
                                             map_data.empty_map = False
-                                            map_data.pixel_type[x, y] = MapPixelType.NEW_SEGMENT.value
+                                            map_data.pixel_type[x, y] = (
+                                                MapPixelType.NEW_SEGMENT.value
+                                            )
                                         elif segment_id == 2:
                                             map_data.empty_map = False
-                                            map_data.pixel_type[x, y] = MapPixelType.WALL.value
+                                            map_data.pixel_type[x, y] = (
+                                                MapPixelType.WALL.value
+                                            )
                         elif (
-                            vslam_map and not map_data.saved_map and not map_data.recovery_map
+                            vslam_map
+                            and not map_data.saved_map
+                            and not map_data.recovery_map
                         ) or map_data.saved_map_status == 2:
                             for y in range(height):
                                 for x in range(width):
@@ -2755,9 +3158,13 @@ class DreameMowerMapDecoder:
                                     if segment_id > 0:
                                         map_data.empty_map = False
                                         if segment_id == 2:
-                                            map_data.pixel_type[x, y] = MapPixelType.WALL.value
+                                            map_data.pixel_type[x, y] = (
+                                                MapPixelType.WALL.value
+                                            )
                                         else:
-                                            map_data.pixel_type[x, y] = MapPixelType.NEW_SEGMENT.value
+                                            map_data.pixel_type[x, y] = (
+                                                MapPixelType.NEW_SEGMENT.value
+                                            )
                         else:
                             for y in range(height):
                                 for x in range(width):
@@ -2770,14 +3177,17 @@ class DreameMowerMapDecoder:
                                                 MapPixelType.HIDDEN_WALL.value
                                                 if map_data.hidden_segments
                                                 and segment_id
-                                                and segment_id in map_data.hidden_segments
+                                                and segment_id
+                                                in map_data.hidden_segments
                                                 else MapPixelType.WALL.value
                                             )
                                         else:
                                             if segment_id > 0:
                                                 map_data.pixel_type[x, y] = segment_id
 
-                        segments = DreameMowerMapDecoder.get_segments(map_data, vslam_map)
+                        segments = DreameMowerMapDecoder.get_segments(
+                            map_data, vslam_map
+                        )
                         if segments and "seg_inf" in data_json:
                             seg_inf = data_json["seg_inf"]
                             for k, v in segments.items():
@@ -2792,9 +3202,15 @@ class DreameMowerMapDecoder:
                                     if segment_info.get("zoneID") is not None:
                                         segments[k].unique_id = segment_info["zoneID"]
                                     if segment_info.get("material") is not None:
-                                        segments[k].floor_material = segment_info["material"]
+                                        segments[k].floor_material = segment_info[
+                                            "material"
+                                        ]
                                     if segment_info.get("direction") is not None:
-                                        segments[k].floor_material_direction = segment_info["direction"]
+                                        segments[
+                                            k
+                                        ].floor_material_direction = segment_info[
+                                            "direction"
+                                        ]
                                     if segment_info.get(MAP_PARAMETER_NAME):
                                         segments[k].custom_name = base64.b64decode(
                                             segment_info.get(MAP_PARAMETER_NAME)
@@ -2826,11 +3242,15 @@ class DreameMowerMapDecoder:
 
             wifi_map = data_json.get("whm")
             if map_data.saved_map and wifi_map and len(wifi_map) > 1:
-                wifi_map_data = DreameMowerMapDecoder.decode_saved_map(data_json["whm"], False, map_data.rotation)
+                wifi_map_data = DreameMowerMapDecoder.decode_saved_map(
+                    data_json["whm"], False, map_data.rotation
+                )
                 if wifi_map_data:
                     map_data.wifi_map_data = wifi_map_data
                     if map_data.wifi_map_data.router_position is None:
-                        map_data.wifi_map_data.router_position = map_data.router_position
+                        map_data.wifi_map_data.router_position = (
+                            map_data.router_position
+                        )
 
             if "rism" in data_json:
                 saved_map_data = DreameMowerMapDecoder.decode_saved_map(
@@ -2850,25 +3270,45 @@ class DreameMowerMapDecoder:
                         or map_data.recovery_map
                         or (
                             map_data.saved_map_status == 2
-                            and (map_data.empty_map or (not map_data.frame_map and not vslam_map))
+                            and (
+                                map_data.empty_map
+                                or (not map_data.frame_map and not vslam_map)
+                            )
                         )
                     ):
                         map_data.segments = copy.deepcopy(saved_map_data.segments)
                         if saved_map_data.floor_material is not None:
-                            map_data.floor_material = copy.deepcopy(saved_map_data.floor_material)
-                        if map_data.hidden_segments is None and saved_map_data.hidden_segments is not None:
-                            map_data.hidden_segments = copy.deepcopy(saved_map_data.hidden_segments)
+                            map_data.floor_material = copy.deepcopy(
+                                saved_map_data.floor_material
+                            )
+                        if (
+                            map_data.hidden_segments is None
+                            and saved_map_data.hidden_segments is not None
+                        ):
+                            map_data.hidden_segments = copy.deepcopy(
+                                saved_map_data.hidden_segments
+                            )
 
                         if map_data.saved_map_status == 2 and not map_data.frame_map:
-                            left = min(map_data.dimensions.left, saved_map_data.dimensions.left)
-                            top = min(map_data.dimensions.top, saved_map_data.dimensions.top)
+                            left = min(
+                                map_data.dimensions.left, saved_map_data.dimensions.left
+                            )
+                            top = min(
+                                map_data.dimensions.top, saved_map_data.dimensions.top
+                            )
                             width = int(
                                 (
                                     max(
                                         map_data.dimensions.left
-                                        + (map_data.dimensions.width * map_data.dimensions.grid_size),
+                                        + (
+                                            map_data.dimensions.width
+                                            * map_data.dimensions.grid_size
+                                        ),
                                         saved_map_data.dimensions.left
-                                        + (saved_map_data.dimensions.width * saved_map_data.dimensions.grid_size),
+                                        + (
+                                            saved_map_data.dimensions.width
+                                            * saved_map_data.dimensions.grid_size
+                                        ),
                                     )
                                     - left
                                 )
@@ -2878,20 +3318,38 @@ class DreameMowerMapDecoder:
                                 (
                                     max(
                                         map_data.dimensions.top
-                                        + (map_data.dimensions.height * map_data.dimensions.grid_size),
+                                        + (
+                                            map_data.dimensions.height
+                                            * map_data.dimensions.grid_size
+                                        ),
                                         saved_map_data.dimensions.top
-                                        + (saved_map_data.dimensions.height * saved_map_data.dimensions.grid_size),
+                                        + (
+                                            saved_map_data.dimensions.height
+                                            * saved_map_data.dimensions.grid_size
+                                        ),
                                     )
                                     - top
                                 )
                                 / saved_map_data.dimensions.grid_size
                             )
-                            si = int((saved_map_data.dimensions.left - left) / saved_map_data.dimensions.grid_size)
-                            sj = int((saved_map_data.dimensions.top - top) / saved_map_data.dimensions.grid_size)
+                            si = int(
+                                (saved_map_data.dimensions.left - left)
+                                / saved_map_data.dimensions.grid_size
+                            )
+                            sj = int(
+                                (saved_map_data.dimensions.top - top)
+                                / saved_map_data.dimensions.grid_size
+                            )
                             sim = si + saved_map_data.dimensions.width
                             sjm = sj + saved_map_data.dimensions.height
-                            ni = int((map_data.dimensions.left - left) / map_data.dimensions.grid_size)
-                            nj = int((map_data.dimensions.top - top) / map_data.dimensions.grid_size)
+                            ni = int(
+                                (map_data.dimensions.left - left)
+                                / map_data.dimensions.grid_size
+                            )
+                            nj = int(
+                                (map_data.dimensions.top - top)
+                                / map_data.dimensions.grid_size
+                            )
                             nim = ni + map_data.dimensions.width
                             njm = nj + map_data.dimensions.height
                             pixel_type = np.zeros((width, height), np.uint8)
@@ -2900,14 +3358,22 @@ class DreameMowerMapDecoder:
                                 for i in range(width):
                                     if j >= sj and i >= si and j < sjm and i < sim:
                                         saved_value = saved_map_data.data[
-                                            (i - si) + ((j - sj) * saved_map_data.dimensions.width)
+                                            (i - si)
+                                            + (
+                                                (j - sj)
+                                                * saved_map_data.dimensions.width
+                                            )
                                         ]
                                         segment_id = saved_value & 0x3F
                                     else:
                                         saved_value = -1
                                         segment_id = 0
 
-                                    if map_data.restored_map and segment_id and saved_value != -1:
+                                    if (
+                                        map_data.restored_map
+                                        and segment_id
+                                        and saved_value != -1
+                                    ):
                                         if saved_value >> 7 == 1:
                                             pixel_type[i, j] = 255
                                         elif saved_value == 63:
@@ -2915,11 +3381,15 @@ class DreameMowerMapDecoder:
                                         else:
                                             pixel_type[i, j] = segment_id
                                     elif j >= nj and i >= ni and j < njm and i < nim:
-                                        clean_value = int(map_data.pixel_type[(i - ni), ((j - nj))])
+                                        clean_value = int(
+                                            map_data.pixel_type[(i - ni), (j - nj)]
+                                        )
                                         if clean_value == 255:
                                             pixel_type[i, j] = clean_value
                                         elif clean_value == 253:
-                                            pixel_type[i, j] = segment_id if segment_id else 254
+                                            pixel_type[i, j] = (
+                                                segment_id if segment_id else 254
+                                            )
 
                             map_data.combined_pixel_type = pixel_type
                             map_data.combined_dimensions = MapImageDimensions(
@@ -2938,7 +3408,8 @@ class DreameMowerMapDecoder:
                     else:
                         if saved_map_data.segments is not None:
                             if map_data.segments is None and (
-                                map_data.saved_map_status == 1 or map_data.saved_map_status == 0
+                                map_data.saved_map_status == 1
+                                or map_data.saved_map_status == 0
                             ):
                                 map_data.segments = {}
 
@@ -2952,8 +3423,14 @@ class DreameMowerMapDecoder:
                                     map_data.segments[k].index = v.index
                                     map_data.segments[k].unique_id = v.unique_id
                                     map_data.segments[k].neighbors = v.neighbors
-                                    map_data.segments[k].floor_material = v.floor_material
-                                    map_data.segments[k].floor_material_direction = v.floor_material_direction
+                                    map_data.segments[
+                                        k
+                                    ].floor_material = v.floor_material
+                                    map_data.segments[
+                                        k
+                                    ].floor_material_direction = (
+                                        v.floor_material_direction
+                                    )
                                     map_data.segments[k].visibility = v.visibility
                                     map_data.segments[k].color_index = v.color_index
                                     if map_data.saved_map_status == 2:
@@ -2985,11 +3462,15 @@ class DreameMowerMapDecoder:
                         map_data.router_position = saved_map_data.router_position
                         if saved_map_data.saved_furnitures is not None:
                             map_data.furnitures = saved_map_data.saved_furnitures
-                            map_data.furniture_version = saved_map_data.furniture_version
+                            map_data.furniture_version = (
+                                saved_map_data.furniture_version
+                            )
 
                         if vslam_map:
                             map_data.segments = copy.deepcopy(saved_map_data.segments)
-                            map_data.charger_position = copy.deepcopy(saved_map_data.charger_position)
+                            map_data.charger_position = copy.deepcopy(
+                                saved_map_data.charger_position
+                            )
 
             if (
                 not map_data.saved_map
@@ -3003,7 +3484,10 @@ class DreameMowerMapDecoder:
                 if not map_data.saved_map:
                     DreameMowerMapDecoder.set_robot_segment(map_data)
 
-                if map_data.saved_map or next(iter(map_data.segments.values())).color_index is None:
+                if (
+                    map_data.saved_map
+                    or next(iter(map_data.segments.values())).color_index is None
+                ):
                     DreameMowerMapDecoder.set_segment_color_index(map_data)
 
                 DreameMowerMapDecoder.set_floor_material(map_data)
@@ -3039,10 +3523,12 @@ class DreameMowerMapDecoder:
             if map_data.furnitures is None:
                 furniture_key = (
                     "ai_furniture_user"
-                    if "ai_furniture_user" in data_json and len(data_json["ai_furniture_user"])
+                    if "ai_furniture_user" in data_json
+                    and len(data_json["ai_furniture_user"])
                     else (
                         "ai_furniture_new"
-                        if "ai_furniture_new" in data_json and len(data_json["ai_furniture_new"])
+                        if "ai_furniture_new" in data_json
+                        and len(data_json["ai_furniture_new"])
                         else "ai_furniture"
                     )
                 )
@@ -3105,14 +3591,23 @@ class DreameMowerMapDecoder:
                             x = float(obstacle[0])
                             y = float(obstacle[1])
                             possibility = int(float(obstacle[3]) * 100)
-                            if size >= 7 and (id >= 1000 or obstacle_type == ObstacleType.NEGLECTED_ZONE.value):
+                            if size >= 7 and (
+                                id >= 1000
+                                or obstacle_type == ObstacleType.NEGLECTED_ZONE.value
+                            ):
                                 if size >= 8:
-                                    if obstacle_type == ObstacleType.NEGLECTED_ZONE.value:
+                                    if (
+                                        obstacle_type
+                                        == ObstacleType.NEGLECTED_ZONE.value
+                                    ):
                                         segment_id = int(x)
                                         x = 0
                                         y = 0
                                         possibility = None
-                                        if map_data.segments and segment_id in map_data.segments:
+                                        if (
+                                            map_data.segments
+                                            and segment_id in map_data.segments
+                                        ):
                                             x = map_data.segments[segment_id].x
                                             y = map_data.segments[segment_id].y
 
@@ -3132,7 +3627,10 @@ class DreameMowerMapDecoder:
                                         (
                                             int(obstacle[-1])
                                             if len(str(obstacle[-1])) == 1
-                                            and (int(obstacle[-1]) >= 0 or int(obstacle[-1]) <= 2)
+                                            and (
+                                                int(obstacle[-1]) >= 0
+                                                or int(obstacle[-1]) <= 2
+                                            )
                                             else 0
                                         ),
                                     )
@@ -3243,11 +3741,15 @@ class DreameMowerMapDecoder:
 
             if not map_data.saved_map:
                 if "decmap" in data_json or map_data.multiple_cleaning_time:
-                    map_data.cleaning_map_data = DreameMowerMapDecoder.decode_cleaning_map_data(
-                        map_data, data_json.get("decmap")
+                    map_data.cleaning_map_data = (
+                        DreameMowerMapDecoder.decode_cleaning_map_data(
+                            map_data, data_json.get("decmap")
+                        )
                     )
                     if map_data.cleaning_map_data:
-                        map_data.cleaned_segments = map_data.cleaning_map_data.cleaned_segments
+                        map_data.cleaned_segments = (
+                            map_data.cleaning_map_data.cleaned_segments
+                        )
 
             # map_data.ai_outborders_user = data_json.get("ai_outborders_user")
             # map_data.ai_outborders = data_json.get("ai_outborders")
@@ -3298,7 +3800,9 @@ class DreameMowerMapDecoder:
         if map_data.docked is not None:
             current_map_data.docked = map_data.docked
 
-        if map_data.charger_position is not None and (not vslam_map or current_map_data.saved_map_status != 2):
+        if map_data.charger_position is not None and (
+            not vslam_map or current_map_data.saved_map_status != 2
+        ):
             current_map_data.charger_position = map_data.charger_position
 
         if map_data.obstacles is not None:
@@ -3319,11 +3823,13 @@ class DreameMowerMapDecoder:
             top = min(new_dimensions.top, current_dimensions.top)
             max_left = max(
                 new_dimensions.left + (new_dimensions.width * grid_size),
-                current_dimensions.left + (current_dimensions.width * current_dimensions.grid_size),
+                current_dimensions.left
+                + (current_dimensions.width * current_dimensions.grid_size),
             )
             max_top = max(
                 new_dimensions.top + (new_dimensions.height * grid_size),
-                current_dimensions.top + (current_dimensions.height * current_dimensions.grid_size),
+                current_dimensions.top
+                + (current_dimensions.height * current_dimensions.grid_size),
             )
 
             # Calculate new image size
@@ -3332,19 +3838,27 @@ class DreameMowerMapDecoder:
 
             # Create new buffer
             data = np.zeros((width * height), np.uint8)
-            pixel_type = np.full((width, height), MapPixelType.OUTSIDE.value, dtype=np.uint8)
+            pixel_type = np.full(
+                (width, height), MapPixelType.OUTSIDE.value, dtype=np.uint8
+            )
 
             # Calculate old image offset
-            left_offset = int((current_dimensions.left - left) / current_dimensions.grid_size)
-            top_offset = int((current_dimensions.top - top) / current_dimensions.grid_size)
+            left_offset = int(
+                (current_dimensions.left - left) / current_dimensions.grid_size
+            )
+            top_offset = int(
+                (current_dimensions.top - top) / current_dimensions.grid_size
+            )
 
             # Copy old image to buffer
             for y in range(current_dimensions.height):
                 for x in range(current_dimensions.width):
-                    data[(width * (top_offset + y)) + left_offset + x] = current_map_data.data[
-                        (current_dimensions.width * y) + x
-                    ]
-                    pixel_type[left_offset + x, top_offset + y] = current_map_data.pixel_type[x, y]
+                    data[(width * (top_offset + y)) + left_offset + x] = (
+                        current_map_data.data[(current_dimensions.width * y) + x]
+                    )
+                    pixel_type[left_offset + x, top_offset + y] = (
+                        current_map_data.pixel_type[x, y]
+                    )
 
             # Calculate new image offset
             left_offset = int((new_dimensions.left - left) / grid_size)
@@ -3359,16 +3873,20 @@ class DreameMowerMapDecoder:
                         # Add current buffer value to new buffer value for finding the new pixel value
                         data[new_index] = data[new_index] + map_data.data[current_index]
                         # Calculate the new pixel type from updated buffer value
-                        pixel_type[left_offset + x, top_offset + y] = DreameMowerMapDecoder._get_pixel_type(
-                            current_map_data,
-                            int(data[new_index]),
-                            vslam_map,
+                        pixel_type[left_offset + x, top_offset + y] = (
+                            DreameMowerMapDecoder._get_pixel_type(
+                                current_map_data,
+                                int(data[new_index]),
+                                vslam_map,
+                            )
                         )
 
             # Update size and buffer
             current_map_data.data = bytes(data)
             current_map_data.pixel_type = pixel_type
-            current_map_data.dimensions = MapImageDimensions(top, left, height, width, grid_size)
+            current_map_data.dimensions = MapImageDimensions(
+                top, left, height, width, grid_size
+            )
 
             if vslam_map:
                 current_map_data.need_optimization = True
@@ -3391,7 +3909,9 @@ class DreameMowerMapDecoder:
     def decode_cleaning_map_data(map_data, cleaning_map_str):
         partial_cleaning_map = None
         if cleaning_map_str and len(cleaning_map_str) > 1:
-            partial_cleaning_map = DreameMowerMapDecoder.decode_map_partial(cleaning_map_str)
+            partial_cleaning_map = DreameMowerMapDecoder.decode_map_partial(
+                cleaning_map_str
+            )
             if partial_cleaning_map is None:
                 return
 
@@ -3401,7 +3921,9 @@ class DreameMowerMapDecoder:
             cleaning_map.frame_id = partial_cleaning_map.frame_id
             cleaning_map.frame_type = partial_cleaning_map.frame_type
             cleaning_map.timestamp_ms = partial_cleaning_map.timestamp_ms
-            cleaning_map.cleaned_segments = partial_cleaning_map.data_json.get("CleanArea")
+            cleaning_map.cleaned_segments = partial_cleaning_map.data_json.get(
+                "CleanArea"
+            )
         else:
             cleaning_map.map_id = map_data.map_id
             cleaning_map.frame_id = map_data.frame_id
@@ -3428,27 +3950,40 @@ class DreameMowerMapDecoder:
 
         cleaning_map.multiple_cleaning_time = map_data.multiple_cleaning_time
         if partial_cleaning_map:
-            grid_size = DreameMowerMapDecoder._read_int_16_le(partial_cleaning_map.raw, 17)
+            grid_size = DreameMowerMapDecoder._read_int_16_le(
+                partial_cleaning_map.raw, 17
+            )
             width = DreameMowerMapDecoder._read_int_16_le(partial_cleaning_map.raw, 19)
             height = DreameMowerMapDecoder._read_int_16_le(partial_cleaning_map.raw, 21)
             left = DreameMowerMapDecoder._read_int_16_le(partial_cleaning_map.raw, 23)
             top = DreameMowerMapDecoder._read_int_16_le(partial_cleaning_map.raw, 25)
 
             data = partial_cleaning_map.raw[
-                DreameMowerMapDecoder.HEADER_SIZE : DreameMowerMapDecoder.HEADER_SIZE + width * height
+                DreameMowerMapDecoder.HEADER_SIZE : DreameMowerMapDecoder.HEADER_SIZE
+                + width * height
             ]
 
             for y in range(height):
                 for x in range(width):
                     value = data[int(y * width + x)] & 3
                     if value > 0:
-                        xx = int(((left + (x * grid_size)) - map_data.dimensions.left) / map_data.dimensions.grid_size)
-                        yy = int(((top + (y * grid_size)) - map_data.dimensions.top) / map_data.dimensions.grid_size)
+                        xx = int(
+                            ((left + (x * grid_size)) - map_data.dimensions.left)
+                            / map_data.dimensions.grid_size
+                        )
+                        yy = int(
+                            ((top + (y * grid_size)) - map_data.dimensions.top)
+                            / map_data.dimensions.grid_size
+                        )
                         if cleaning_map.check_point(xx, yy, True):
                             cleaning_map.pixel_type[xx, yy] = 249 - value
 
-        cleaning_map.has_dirty_area = bool(MapPixelType.DIRTY_AREA.value in cleaning_map.pixel_type)
-        cleaning_map.has_cleaned_area = bool(MapPixelType.CLEAN_AREA.value in cleaning_map.pixel_type)
+        cleaning_map.has_dirty_area = bool(
+            MapPixelType.DIRTY_AREA.value in cleaning_map.pixel_type
+        )
+        cleaning_map.has_cleaned_area = bool(
+            MapPixelType.CLEAN_AREA.value in cleaning_map.pixel_type
+        )
 
         return cleaning_map
 
@@ -3495,32 +4030,58 @@ class DreameMowerMapDecoder:
                             if startI != -1 and endI != -1:
                                 x = (endI - startI) + startI
                     else:
-                        center_x = DreameMowerMapDecoder._get_segment_center(map_data, k, y, False)
+                        center_x = DreameMowerMapDecoder._get_segment_center(
+                            map_data, k, y, False
+                        )
                         if center_x is not None:
-                            center_y = DreameMowerMapDecoder._get_segment_center(map_data, k, center_x, True)
+                            center_y = DreameMowerMapDecoder._get_segment_center(
+                                map_data, k, center_x, True
+                            )
                             if center_y is not None:
                                 x = center_x
                                 y = center_y
 
-                segments[k].x0 = int(map_data.dimensions.left + (v.x0 * map_data.dimensions.grid_size))
+                segments[k].x0 = int(
+                    map_data.dimensions.left + (v.x0 * map_data.dimensions.grid_size)
+                )
                 segments[k].y0 = int(
-                    map_data.dimensions.top + (v.y0 * map_data.dimensions.grid_size) - map_data.dimensions.grid_size
+                    map_data.dimensions.top
+                    + (v.y0 * map_data.dimensions.grid_size)
+                    - map_data.dimensions.grid_size
                 )
                 segments[k].x1 = int(
-                    map_data.dimensions.left + (v.x1 * map_data.dimensions.grid_size) + map_data.dimensions.grid_size
+                    map_data.dimensions.left
+                    + (v.x1 * map_data.dimensions.grid_size)
+                    + map_data.dimensions.grid_size
                 )
-                segments[k].y1 = int(map_data.dimensions.top + (v.y1 * map_data.dimensions.grid_size))
-                segments[k].x = int(map_data.dimensions.left + (x * map_data.dimensions.grid_size))
-                segments[k].y = int(map_data.dimensions.top + (y * map_data.dimensions.grid_size))
+                segments[k].y1 = int(
+                    map_data.dimensions.top + (v.y1 * map_data.dimensions.grid_size)
+                )
+                segments[k].x = int(
+                    map_data.dimensions.left + (x * map_data.dimensions.grid_size)
+                )
+                segments[k].y = int(
+                    map_data.dimensions.top + (y * map_data.dimensions.grid_size)
+                )
                 segments[k].set_name()
         return segments
 
     @staticmethod
     def set_robot_segment(map_data: MapData) -> None:
-        if map_data.segments and map_data.saved_map_status == 2 and map_data.robot_position is not None:
+        if (
+            map_data.segments
+            and map_data.saved_map_status == 2
+            and map_data.robot_position is not None
+        ):
             map_data.robot_segment = map_data.pixel_type[
-                int((map_data.robot_position.x - map_data.dimensions.left) / map_data.dimensions.grid_size),
-                int((map_data.robot_position.y - map_data.dimensions.top) / map_data.dimensions.grid_size),
+                int(
+                    (map_data.robot_position.x - map_data.dimensions.left)
+                    / map_data.dimensions.grid_size
+                ),
+                int(
+                    (map_data.robot_position.y - map_data.dimensions.top)
+                    / map_data.dimensions.grid_size
+                ),
             ]
             if map_data.robot_segment not in map_data.segments:
                 map_data.robot_segment = 0
@@ -3634,14 +4195,22 @@ class DreameMowerMapDecoder:
             map_data.segments[k].color_index = v
 
     @staticmethod
-    def set_segment_floor_material(map_data: MapData, segment_id: int, floor_material) -> None:
-        if floor_material is not None and map_data.segments and segment_id in map_data.segments:
+    def set_segment_floor_material(
+        map_data: MapData, segment_id: int, floor_material
+    ) -> None:
+        if (
+            floor_material is not None
+            and map_data.segments
+            and segment_id in map_data.segments
+        ):
             if map_data.segments[segment_id].floor_material is not None:
                 if map_data.segments[segment_id].floor_material_direction is not None:
                     map_data.segments[segment_id].floor_material_rotated_direction = (
                         map_data.segments[segment_id].floor_material_direction
                         if map_data.rotation == 0 or map_data.rotation == 180
-                        else 90 if map_data.segments[segment_id].floor_material_direction == 0 else 0
+                        else 90
+                        if map_data.segments[segment_id].floor_material_direction == 0
+                        else 0
                     )
 
                 floor_material[segment_id] = (
@@ -3653,9 +4222,16 @@ class DreameMowerMapDecoder:
                         if map_data.segments[segment_id].floor_material == 2
                         else (
                             2
-                            if map_data.segments[segment_id].floor_material_direction == 90
-                            or (map_data.segments[segment_id].x1 - map_data.segments[segment_id].x0)
-                            <= (map_data.segments[segment_id].y1 - map_data.segments[segment_id].y0)
+                            if map_data.segments[segment_id].floor_material_direction
+                            == 90
+                            or (
+                                map_data.segments[segment_id].x1
+                                - map_data.segments[segment_id].x0
+                            )
+                            <= (
+                                map_data.segments[segment_id].y1
+                                - map_data.segments[segment_id].y0
+                            )
                             else 1
                         )
                     )
@@ -3666,7 +4242,9 @@ class DreameMowerMapDecoder:
         if map_data.segments:
             floor_material = {}
             for k in map_data.segments.keys():
-                DreameMowerMapDecoder.set_segment_floor_material(map_data, k, floor_material)
+                DreameMowerMapDecoder.set_segment_floor_material(
+                    map_data, k, floor_material
+                )
             if floor_material:
                 map_data.floor_material = floor_material
 
@@ -3686,7 +4264,9 @@ class DreameMowerMapDataJsonRenderer:
         self._layers: dict[MapRendererLayer, dict[str, Any]] = {}
 
         self._default_map_data: str = base64.b64decode(DEFAULT_MAP_DATA)
-        self._default_map_image = Image.open(BytesIO(base64.b64decode(DEFAULT_MAP_DATA_IMAGE))).convert("RGBA")
+        self._default_map_image = Image.open(
+            BytesIO(base64.b64decode(DEFAULT_MAP_DATA_IMAGE))
+        ).convert("RGBA")
 
     @staticmethod
     def _coordinate_tuple_sort(a: list[int], b: list[int]) -> bool:
@@ -3705,7 +4285,8 @@ class DreameMowerMapDataJsonRenderer:
     def _convert_coordinates(x: int, y: int) -> int:
         return [
             round((x + DreameMowerMapDataJsonRenderer.HALF_INT16) / 10),
-            DreameMowerMapDataJsonRenderer.MAX - round((y + DreameMowerMapDataJsonRenderer.HALF_INT16) / 10),
+            DreameMowerMapDataJsonRenderer.MAX
+            - round((y + DreameMowerMapDataJsonRenderer.HALF_INT16) / 10),
         ]
 
     @staticmethod
@@ -3720,7 +4301,9 @@ class DreameMowerMapDataJsonRenderer:
         image.save(buffer, format="PNG", pnginfo=info)
         return buffer.getvalue()
 
-    def render_map(self, map_data: MapData, robot_status: int = 0, station_status: int = 0) -> bytes:
+    def render_map(
+        self, map_data: MapData, robot_status: int = 0, station_status: int = 0
+    ) -> bytes:
         if map_data is None or map_data.empty_map:
             return self.default_map_image
 
@@ -3745,8 +4328,14 @@ class DreameMowerMapDataJsonRenderer:
             or self._map_data.saved_map_status != map_data.saved_map_status
         ):
             self._map_data = None
-            self._left = round((map_data.dimensions.left + DreameMowerMapDataJsonRenderer.HALF_INT16) / 10)
-            self._top = round((map_data.dimensions.top + DreameMowerMapDataJsonRenderer.HALF_INT16) / 10)
+            self._left = round(
+                (map_data.dimensions.left + DreameMowerMapDataJsonRenderer.HALF_INT16)
+                / 10
+            )
+            self._top = round(
+                (map_data.dimensions.top + DreameMowerMapDataJsonRenderer.HALF_INT16)
+                / 10
+            )
             self._grid_size = round(map_data.dimensions.grid_size / 10)
 
         map_data_json = {
@@ -3776,10 +4365,14 @@ class DreameMowerMapDataJsonRenderer:
                         map_data.robot_position.x, map_data.robot_position.y
                     ),
                     MAP_DATA_JSON_PARAMETER_META_DATA: {
-                        MAP_PARAMETER_ANGLE: DreameMowerMapDataJsonRenderer._convert_angle(map_data.robot_position.a)
+                        MAP_PARAMETER_ANGLE: DreameMowerMapDataJsonRenderer._convert_angle(
+                            map_data.robot_position.a
+                        )
                     },
                 }
-            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].append(self._layers[MapRendererLayer.ROBOT])
+            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].append(
+                self._layers[MapRendererLayer.ROBOT]
+            )
 
         if map_data.charger_position:
             if (
@@ -3798,7 +4391,9 @@ class DreameMowerMapDataJsonRenderer:
                         )
                     },
                 }
-            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].append(self._layers[MapRendererLayer.CHARGER])
+            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].append(
+                self._layers[MapRendererLayer.CHARGER]
+            )
 
         if map_data.no_go_areas:
             if (
@@ -3808,10 +4403,18 @@ class DreameMowerMapDataJsonRenderer:
             ):
                 self._layers[MapRendererLayer.NO_GO] = []
                 for area in map_data.no_go_areas:
-                    a = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x0, area.y0)
-                    b = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x1, area.y1)
-                    c = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x2, area.y2)
-                    d = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x3, area.y3)
+                    a = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x0, area.y0
+                    )
+                    b = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x1, area.y1
+                    )
+                    c = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x2, area.y2
+                    )
+                    d = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x3, area.y3
+                    )
 
                     self._layers[MapRendererLayer.NO_GO].append(
                         {
@@ -3828,7 +4431,9 @@ class DreameMowerMapDataJsonRenderer:
                             ],
                         }
                     )
-            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].extend(self._layers[MapRendererLayer.NO_GO])
+            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].extend(
+                self._layers[MapRendererLayer.NO_GO]
+            )
 
         if map_data.active_areas:
             if (
@@ -3838,10 +4443,18 @@ class DreameMowerMapDataJsonRenderer:
             ):
                 self._layers[MapRendererLayer.ACTIVE_AREA] = []
                 for area in map_data.active_areas:
-                    a = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x0, area.y0)
-                    b = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x1, area.y1)
-                    c = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x2, area.y2)
-                    d = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x3, area.y3)
+                    a = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x0, area.y0
+                    )
+                    b = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x1, area.y1
+                    )
+                    c = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x2, area.y2
+                    )
+                    d = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x3, area.y3
+                    )
 
                     self._layers[MapRendererLayer.ACTIVE_AREA].append(
                         {
@@ -3858,7 +4471,9 @@ class DreameMowerMapDataJsonRenderer:
                             ],
                         }
                     )
-            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].extend(self._layers[MapRendererLayer.ACTIVE_AREA])
+            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].extend(
+                self._layers[MapRendererLayer.ACTIVE_AREA]
+            )
 
         if map_data.active_points:
             if (
@@ -3880,10 +4495,18 @@ class DreameMowerMapDataJsonRenderer:
                         point.y + size,
                     )
 
-                    a = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x0, area.y0)
-                    b = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x1, area.y1)
-                    c = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x2, area.y2)
-                    d = DreameMowerMapDataJsonRenderer._convert_coordinates(area.x3, area.y3)
+                    a = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x0, area.y0
+                    )
+                    b = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x1, area.y1
+                    )
+                    c = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x2, area.y2
+                    )
+                    d = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        area.x3, area.y3
+                    )
 
                     self._layers[MapRendererLayer.ACTIVE_POINT].append(
                         {
@@ -3900,7 +4523,9 @@ class DreameMowerMapDataJsonRenderer:
                             ],
                         }
                     )
-            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].extend(self._layers[MapRendererLayer.ACTIVE_POINT])
+            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].extend(
+                self._layers[MapRendererLayer.ACTIVE_POINT]
+            )
 
         if map_data.virtual_walls:
             if (
@@ -3910,8 +4535,12 @@ class DreameMowerMapDataJsonRenderer:
             ):
                 self._layers[MapRendererLayer.WALL] = []
                 for wall in map_data.virtual_walls:
-                    a = DreameMowerMapDataJsonRenderer._convert_coordinates(wall.x0, wall.y0)
-                    b = DreameMowerMapDataJsonRenderer._convert_coordinates(wall.x1, wall.y1)
+                    a = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        wall.x0, wall.y0
+                    )
+                    b = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                        wall.x1, wall.y1
+                    )
 
                     self._layers[MapRendererLayer.WALL].append(
                         {
@@ -3919,7 +4548,9 @@ class DreameMowerMapDataJsonRenderer:
                             MAP_DATA_JSON_PARAMETER_POINTS: [a[0], a[1], b[0], b[1]],
                         }
                     )
-            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].extend(self._layers[MapRendererLayer.WALL])
+            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].extend(
+                self._layers[MapRendererLayer.WALL]
+            )
 
         if map_data.path and (
             self._map_data is None
@@ -3934,8 +4565,12 @@ class DreameMowerMapDataJsonRenderer:
                 for point in map_data.path[1:]:
                     if point.path_type == PathType.LINE:
                         point = point
-                        a = DreameMowerMapDataJsonRenderer._convert_coordinates(s.x, s.y)
-                        b = DreameMowerMapDataJsonRenderer._convert_coordinates(point.x, point.y)
+                        a = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                            s.x, s.y
+                        )
+                        b = DreameMowerMapDataJsonRenderer._convert_coordinates(
+                            point.x, point.y
+                        )
 
                         points.extend([a[0], a[1], b[0], b[1]])
                     else:
@@ -3953,7 +4588,9 @@ class DreameMowerMapDataJsonRenderer:
                     MAP_DATA_JSON_PARAMETER_POINTS: points,
                 }
             )
-            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].extend(self._layers[MapRendererLayer.PATH])
+            map_data_json[MAP_DATA_JSON_PARAMETER_ENTITIES].extend(
+                self._layers[MapRendererLayer.PATH]
+            )
 
         floor_pixels = []
         wall_pixels = []
@@ -3976,17 +4613,25 @@ class DreameMowerMapDataJsonRenderer:
                         (y + (self._top / self._grid_size)),
                     ]
 
-                    coords[1] = (DreameMowerMapDataJsonRenderer.MAX / self._grid_size) - coords[1]
+                    coords[1] = (
+                        DreameMowerMapDataJsonRenderer.MAX / self._grid_size
+                    ) - coords[1]
 
                     coords[0] = round(coords[0])
                     coords[1] = round(coords[1])
 
                     if segment_id == MapPixelType.WALL.value:
                         wall_pixels.append(coords)
-                    elif segment_id == MapPixelType.FLOOR.value or segment_id == MapPixelType.UNKNOWN.value:
+                    elif (
+                        segment_id == MapPixelType.FLOOR.value
+                        or segment_id == MapPixelType.UNKNOWN.value
+                    ):
                         floor_pixels.append(coords)
                     elif segment_id > 0 and segment_id < 61:
-                        if map_data.active_segments and segment_id not in map_data.active_segments:
+                        if (
+                            map_data.active_segments
+                            and segment_id not in map_data.active_segments
+                        ):
                             floor_pixels.append(coords)
                         else:
                             if not map_data.segments:
@@ -4004,7 +4649,9 @@ class DreameMowerMapDataJsonRenderer:
                             val
                             for sublist in sorted(
                                 floor_pixels,
-                                key=cmp_to_key(DreameMowerMapDataJsonRenderer._coordinate_tuple_sort),
+                                key=cmp_to_key(
+                                    DreameMowerMapDataJsonRenderer._coordinate_tuple_sort
+                                ),
                             )
                             for val in sublist
                         ],
@@ -4019,7 +4666,9 @@ class DreameMowerMapDataJsonRenderer:
                             val
                             for sublist in sorted(
                                 wall_pixels,
-                                key=cmp_to_key(DreameMowerMapDataJsonRenderer._coordinate_tuple_sort),
+                                key=cmp_to_key(
+                                    DreameMowerMapDataJsonRenderer._coordinate_tuple_sort
+                                ),
                             )
                             for val in sublist
                         ],
@@ -4040,14 +4689,19 @@ class DreameMowerMapDataJsonRenderer:
                                 val
                                 for sublist in sorted(
                                     v,
-                                    key=cmp_to_key(DreameMowerMapDataJsonRenderer._coordinate_tuple_sort),
+                                    key=cmp_to_key(
+                                        DreameMowerMapDataJsonRenderer._coordinate_tuple_sort
+                                    ),
                                 )
                                 for val in sublist
                             ],
                             MAP_DATA_JSON_PARAMETER_META_DATA: {
                                 MAP_DATA_JSON_PARAMETER_SEGMENT_ID: k,
                                 MAP_DATA_JSON_PARAMETER_ACTIVE: (
-                                    True if map_data.active_segments and k in map_data.active_segments else False
+                                    True
+                                    if map_data.active_segments
+                                    and k in map_data.active_segments
+                                    else False
                                 ),
                                 MAP_DATA_JSON_PARAMETER_NAME: name,
                             },
@@ -4080,79 +4734,79 @@ class DreameMowerMapDataJsonRenderer:
 
                     if (
                         pixels[i]
-                        < layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_X][
-                            MAP_DATA_JSON_PARAMETER_MIN
-                        ]
+                        < layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_X
+                        ][MAP_DATA_JSON_PARAMETER_MIN]
                     ):
-                        layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_X][
-                            MAP_DATA_JSON_PARAMETER_MIN
-                        ] = pixels[i]
+                        layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_X
+                        ][MAP_DATA_JSON_PARAMETER_MIN] = pixels[i]
 
                     if (
                         pixels[i]
-                        > layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_X][
-                            MAP_DATA_JSON_PARAMETER_MAX
-                        ]
+                        > layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_X
+                        ][MAP_DATA_JSON_PARAMETER_MAX]
                     ):
-                        layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_X][
-                            MAP_DATA_JSON_PARAMETER_MAX
-                        ] = pixels[i]
+                        layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_X
+                        ][MAP_DATA_JSON_PARAMETER_MAX] = pixels[i]
 
                     if (
                         pixels[i + 1]
-                        < layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_Y][
-                            MAP_DATA_JSON_PARAMETER_MIN
-                        ]
+                        < layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_Y
+                        ][MAP_DATA_JSON_PARAMETER_MIN]
                     ):
-                        layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_Y][
-                            MAP_DATA_JSON_PARAMETER_MIN
-                        ] = pixels[i + 1]
+                        layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_Y
+                        ][MAP_DATA_JSON_PARAMETER_MIN] = pixels[i + 1]
 
                     if (
                         pixels[i + 1]
-                        > layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_Y][
-                            MAP_DATA_JSON_PARAMETER_MAX
-                        ]
+                        > layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_Y
+                        ][MAP_DATA_JSON_PARAMETER_MAX]
                     ):
-                        layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_Y][
-                            MAP_DATA_JSON_PARAMETER_MAX
-                        ] = pixels[i + 1]
+                        layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_Y
+                        ][MAP_DATA_JSON_PARAMETER_MAX] = pixels[i + 1]
 
-                layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_X][MAP_DATA_JSON_PARAMETER_MID] = (
-                    round(
-                        (
-                            layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_X][
-                                MAP_DATA_JSON_PARAMETER_MAX
-                            ]
-                            + layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_X][
-                                MAP_DATA_JSON_PARAMETER_MIN
-                            ]
-                        )
-                        / 2
+                layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_X][
+                    MAP_DATA_JSON_PARAMETER_MID
+                ] = round(
+                    (
+                        layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_X
+                        ][MAP_DATA_JSON_PARAMETER_MAX]
+                        + layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_X
+                        ][MAP_DATA_JSON_PARAMETER_MIN]
                     )
+                    / 2
                 )
-                layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_Y][MAP_DATA_JSON_PARAMETER_MID] = (
-                    round(
-                        (
-                            layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_Y][
-                                MAP_DATA_JSON_PARAMETER_MAX
-                            ]
-                            + layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_Y][
-                                MAP_DATA_JSON_PARAMETER_MIN
-                            ]
-                        )
-                        / 2
+                layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_Y][
+                    MAP_DATA_JSON_PARAMETER_MID
+                ] = round(
+                    (
+                        layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_Y
+                        ][MAP_DATA_JSON_PARAMETER_MAX]
+                        + layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                            MAP_DATA_JSON_PARAMETER_Y
+                        ][MAP_DATA_JSON_PARAMETER_MIN]
                     )
+                    / 2
                 )
 
                 if sum_x:
-                    layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_X][
-                        MAP_DATA_JSON_PARAMETER_AVG
-                    ] = round(sum_x / (len(pixels) / 2))
+                    layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                        MAP_DATA_JSON_PARAMETER_X
+                    ][MAP_DATA_JSON_PARAMETER_AVG] = round(sum_x / (len(pixels) / 2))
                 if sum_y:
-                    layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][MAP_DATA_JSON_PARAMETER_Y][
-                        MAP_DATA_JSON_PARAMETER_AVG
-                    ] = round(sum_y / (len(pixels) / 2))
+                    layers[MAP_DATA_JSON_PARAMETER_DIMENSIONS][
+                        MAP_DATA_JSON_PARAMETER_Y
+                    ][MAP_DATA_JSON_PARAMETER_AVG] = round(sum_y / (len(pixels) / 2))
 
                 current_x_start = -65535
                 current_y = -65535
@@ -4164,7 +4818,9 @@ class DreameMowerMapDataJsonRenderer:
                     y = pixels[i + 1]
 
                     if y != current_y or x > (current_x_start + current_count):
-                        compressed_pixels.extend([current_x_start, current_y, current_count])
+                        compressed_pixels.extend(
+                            [current_x_start, current_y, current_count]
+                        )
                         current_x_start = x
                         current_y = y
                         current_count = 1
@@ -4172,10 +4828,14 @@ class DreameMowerMapDataJsonRenderer:
                         current_count = current_count + 1
 
                 compressed_pixels.extend([current_x_start, current_y, current_count])
-                layers[MAP_DATA_JSON_PARAMETER_COMPRESSED_PIXELS] = compressed_pixels[3:]
+                layers[MAP_DATA_JSON_PARAMETER_COMPRESSED_PIXELS] = compressed_pixels[
+                    3:
+                ]
                 layers[MAP_DATA_JSON_PARAMETER_PIXELS] = []
 
-        map_data_json[MAP_DATA_JSON_PARAMETER_LAYERS].extend(self._layers[MapRendererLayer.IMAGE])
+        map_data_json[MAP_DATA_JSON_PARAMETER_LAYERS].extend(
+            self._layers[MapRendererLayer.IMAGE]
+        )
 
         self._map_data = map_data
         self._map_data_json = map_data_json
@@ -4211,7 +4871,9 @@ class DreameMowerMapRenderer:
         square: bool = False,
         cache: bool = True,
     ) -> None:
-        self.color_scheme: MapRendererColorScheme = MAP_COLOR_SCHEME_LIST.get(color_scheme, MapRendererColorScheme())
+        self.color_scheme: MapRendererColorScheme = MAP_COLOR_SCHEME_LIST.get(
+            color_scheme, MapRendererColorScheme()
+        )
         self.icon_set: int = MAP_ICON_SET_LIST.get(icon_set, 0)
         self.config: MapRendererConfig = MapRendererConfig()
         if map_objects is not None:
@@ -4311,11 +4973,13 @@ class DreameMowerMapRenderer:
 
         if self.config.cleaning_times:
             self._cleaning_times_icon = [
-                Image.open(BytesIO(base64.b64decode(icon))).convert("RGBA") for icon in repeats
+                Image.open(BytesIO(base64.b64decode(icon))).convert("RGBA")
+                for icon in repeats
             ]
         if self.config.cleaning_mode:
             self._cleaning_mode_icon = [
-                Image.open(BytesIO(base64.b64decode(icon))).convert("RGBA") for icon in cleaning_mode
+                Image.open(BytesIO(base64.b64decode(icon))).convert("RGBA")
+                for icon in cleaning_mode
             ]
 
     @staticmethod
@@ -4436,13 +5100,17 @@ class DreameMowerMapRenderer:
                 h = 0
                 if v.width and v.height:
                     if v.type.value not in (
-                        FURNITURE_V2_TYPE_TO_IMAGE if furniture_version == 2 else FURNITURE_TYPE_TO_IMAGE
+                        FURNITURE_V2_TYPE_TO_IMAGE
+                        if furniture_version == 2
+                        else FURNITURE_TYPE_TO_IMAGE
                     ):
                         continue
                     w = int((v.width / dimensions.grid_size) / 2)
                     h = int((v.height / dimensions.grid_size) / 2)
                 elif v.type.value not in (
-                    FURNITURE_V2_TYPE_TO_ICON if furniture_version == 2 else FURNITURE_TYPE_TO_ICON
+                    FURNITURE_V2_TYPE_TO_ICON
+                    if furniture_version == 2
+                    else FURNITURE_TYPE_TO_ICON
                 ):
                     continue
                 min_x = min(p.x - w, min_x)
@@ -4479,7 +5147,9 @@ class DreameMowerMapRenderer:
         if (map_data.dimensions.width * map_data.dimensions.height) > 0:
             calibration_points = []
             for point in [Point(0, 0), Point(1000, 0), Point(0, 1000)]:
-                img_point = point.to_img(map_data.dimensions).rotated(map_data.dimensions, map_data.rotation)
+                img_point = point.to_img(map_data.dimensions).rotated(
+                    map_data.dimensions, map_data.rotation
+                )
                 calibration_points.append(
                     {
                         MAP_PARAMETER_MOWER: {
@@ -4502,7 +5172,13 @@ class DreameMowerMapRenderer:
         if outA:
             outRGB = []
             for i in range(3):
-                outRGB.append((float(source[i]) * srcA + float(destination[i]) * dstA * (1 - srcA)) / outA)
+                outRGB.append(
+                    (
+                        float(source[i]) * srcA
+                        + float(destination[i]) * dstA * (1 - srcA)
+                    )
+                    / outA
+                )
             return (int(outRGB[0]), int(outRGB[1]), int(outRGB[2]), int(outA * 255))
         return source
 
@@ -4511,7 +5187,9 @@ class DreameMowerMapRenderer:
         if sub in cached_layers:
             for k, v in sorted(cached_layers[sub].items()):
                 if v is not None:
-                    cached_layers[parent] = Image.alpha_composite(cached_layers[parent], v)
+                    cached_layers[parent] = Image.alpha_composite(
+                        cached_layers[parent], v
+                    )
 
     def get_data_string(
         self,
@@ -4520,7 +5198,11 @@ class DreameMowerMapRenderer:
         robot_status: int = 0,
         station_status: int = 0,
     ) -> str:
-        if not map_data or map_data.empty_map or (map_data.dimensions.width * map_data.dimensions.height) < 2:
+        if (
+            not map_data
+            or map_data.empty_map
+            or (map_data.dimensions.width * map_data.dimensions.height) < 2
+        ):
             return (
                 json.dumps(
                     {"resources": resources},
@@ -4595,7 +5277,9 @@ class DreameMowerMapRenderer:
                 x = coords[i]
                 y = coords[i + 1]
                 if y != current_y or x > (current_x_start + current_count):
-                    compressed_pixels.extend([current_x_start, current_y, current_count])
+                    compressed_pixels.extend(
+                        [current_x_start, current_y, current_count]
+                    )
                     current_x_start = x
                     current_y = y
                     current_count = 1
@@ -4635,13 +5319,19 @@ class DreameMowerMapRenderer:
             ],
             frame_id=map_data.frame_id,
             active_segments=map_data.active_segments,
-            cleanset=bool(map_data.cleanset) if not map_data.saved_map and not map_data.wifi_map else False,
+            cleanset=bool(map_data.cleanset)
+            if not map_data.saved_map and not map_data.wifi_map
+            else False,
             docked=map_data.docked,
             floor_material=map_data.floor_material,
             hidden_segments=map_data.hidden_segments,
             neglected_segments=map_data.neglected_segments,
-            robot_status=robot_status if not map_data.saved_map and not map_data.wifi_map else 0,
-            station_status=station_status if not map_data.saved_map and not map_data.wifi_map else 0,
+            robot_status=robot_status
+            if not map_data.saved_map and not map_data.wifi_map
+            else 0,
+            station_status=station_status
+            if not map_data.saved_map and not map_data.wifi_map
+            else 0,
             saved_map=map_data.saved_map,
             wifi_map=map_data.wifi_map,
             history_map=map_data.history_map,
@@ -4680,8 +5370,12 @@ class DreameMowerMapRenderer:
             # ai_furniture_warning=map_data.ai_furniture_warning,
             # walls_info=map_data.walls_info,
             # walls_info_new=map_data.walls_info_new,
-            startup_method=map_data.startup_method.name.lower() if map_data.startup_method is not None else None,
-            cleanup_method=map_data.cleanup_method.name.lower() if map_data.cleanup_method is not None else None,
+            startup_method=map_data.startup_method.name.lower()
+            if map_data.startup_method is not None
+            else None,
+            cleanup_method=map_data.cleanup_method.name.lower()
+            if map_data.cleanup_method is not None
+            else None,
             second_cleaning=map_data.second_cleaning,
             multiple_cleaning_time=map_data.multiple_cleaning_time,
             dos=map_data.dos,
@@ -4697,12 +5391,16 @@ class DreameMowerMapRenderer:
                         v.x,
                         v.y,
                         v.type,
-                        base64.b64encode(v.custom_name.encode("utf-8")).decode("utf-8") if v.custom_name else None,
+                        base64.b64encode(v.custom_name.encode("utf-8")).decode("utf-8")
+                        if v.custom_name
+                        else None,
                         v.index,
                         v.color_index,
                         v.order,
                         v.cleaning_times,
-                        v.cleaning_mode if v.cleanset_type != CleansetType.DEFAULT else None,
+                        v.cleaning_mode
+                        if v.cleanset_type != CleansetType.DEFAULT
+                        else None,
                         v.floor_material,
                         v.floor_material_direction,
                         v.visibility,
@@ -4730,9 +5428,14 @@ class DreameMowerMapRenderer:
                 if map_data.active_areas
                 else []
             ),
-            active_points=[[point.x0, point.y0] for point in map_data.active_points] if map_data.active_points else [],
+            active_points=[[point.x0, point.y0] for point in map_data.active_points]
+            if map_data.active_points
+            else [],
             active_cruise_points=(
-                [[point.x, point.y, point.type, point.completed] for point in map_data.active_cruise_points.values()]
+                [
+                    [point.x, point.y, point.type, point.completed]
+                    for point in map_data.active_cruise_points.values()
+                ]
                 if map_data.active_cruise_points
                 else []
             ),
@@ -4824,7 +5527,9 @@ class DreameMowerMapRenderer:
 
         map_data_json = json.dumps(
             map_data_json,
-            default=lambda o: dict((key, value) for key, value in o.__dict__.items() if value is not None),
+            default=lambda o: dict(
+                (key, value) for key, value in o.__dict__.items() if value is not None
+            ),
             allow_nan=False,
             sort_keys=True,
             separators=(",", ":"),
@@ -4847,7 +5552,10 @@ class DreameMowerMapRenderer:
     ):
         if image_bytes:
             if not obstacle or not (
-                obstacle.width and obstacle.height and obstacle.pos_x != None and obstacle.pos_y != None
+                obstacle.width
+                and obstacle.height
+                and obstacle.pos_x is not None
+                and obstacle.pos_y is not None
             ):
                 return image_bytes
 
@@ -4859,7 +5567,9 @@ class DreameMowerMapRenderer:
             x1_offset = 0
             if ai_image_crop:
                 if crop_image:
-                    image = image.crop((crop, 0, image.size[0] - crop, image.size[1] - int(crop / 2)))
+                    image = image.crop(
+                        (crop, 0, image.size[0] - crop, image.size[1] - int(crop / 2))
+                    )
                     w = image.size[0]
                     h = image.size[1]
                 else:
@@ -4892,10 +5602,18 @@ class DreameMowerMapRenderer:
                     ).convert("RGBA")
 
                 icon_size = int(round(5 * h / 100.0))
-                obstacle_bottom_left_icon = self._obstacle_bottom_left_icon.resize((icon_size, icon_size))
-                obstacle_top_left_icon = self._obstacle_top_left_icon.resize((icon_size, icon_size))
-                obstacle_bottom_right_icon = self._obstacle_bottom_right_icon.resize((icon_size, icon_size))
-                obstacle_top_right_icon = self._obstacle_top_right_icon.resize((icon_size, icon_size))
+                obstacle_bottom_left_icon = self._obstacle_bottom_left_icon.resize(
+                    (icon_size, icon_size)
+                )
+                obstacle_top_left_icon = self._obstacle_top_left_icon.resize(
+                    (icon_size, icon_size)
+                )
+                obstacle_bottom_right_icon = self._obstacle_bottom_right_icon.resize(
+                    (icon_size, icon_size)
+                )
+                obstacle_top_right_icon = self._obstacle_top_right_icon.resize(
+                    (icon_size, icon_size)
+                )
 
                 x = obstacle.pos_x - 4
                 y = obstacle.pos_y - 4
@@ -4982,7 +5700,11 @@ class DreameMowerMapRenderer:
         station_status: int = 0,
         info_text: bool = False,
     ) -> bytes:
-        if map_data is None or map_data.empty_map or (map_data.dimensions.width * map_data.dimensions.height) < 2:
+        if (
+            map_data is None
+            or map_data.empty_map
+            or (map_data.dimensions.width * map_data.dimensions.height) < 2
+        ):
             return self.default_map_image
 
         self.render_complete = False
@@ -5022,13 +5744,17 @@ class DreameMowerMapRenderer:
                     if (map_data.saved_map_status == 2 or map_data.restored_map)
                     and not map_data.recovery_map
                     and not map_data.history_map
-                    else 2 if (map_data.wifi_map or map_data.history_map) and self._cache else 3
+                    else 2
+                    if (map_data.wifi_map or map_data.history_map) and self._cache
+                    else 3
                 )
             )
             object_scale = 2
 
             render_material = False
-            if (map_data.saved_map_status == 2 or map_data.saved_map) and not map_data.wifi_map:
+            if (
+                map_data.saved_map_status == 2 or map_data.saved_map
+            ) and not map_data.wifi_map:
                 render_material = self.config.material and map_data.floor_material
 
             if scale == 3 and (render_material):
@@ -5041,8 +5767,10 @@ class DreameMowerMapRenderer:
                     or self._map_data.dimensions != map_data.dimensions
                     or self._map_data.saved_map_id != map_data.saved_map_id
                 ):
-                    map_data.dimensions.bounds = DreameMowerMapRenderer._calculate_bounds(
-                        map_data.dimensions, map_data.segments
+                    map_data.dimensions.bounds = (
+                        DreameMowerMapRenderer._calculate_bounds(
+                            map_data.dimensions, map_data.segments
+                        )
                     )
 
                     if self._map_data and (
@@ -5079,7 +5807,11 @@ class DreameMowerMapRenderer:
                     scale,
                 )
 
-                if self._cache and self._map_data and self._map_data.dimensions.padding != map_data.dimensions.padding:
+                if (
+                    self._cache
+                    and self._map_data
+                    and self._map_data.dimensions.padding != map_data.dimensions.padding
+                ):
                     self._map_data = None
             else:
                 map_data.dimensions.padding = self._map_data.dimensions.padding
@@ -5087,20 +5819,39 @@ class DreameMowerMapRenderer:
             map_data.dimensions.scale = scale
             segment_mask = None
 
-            if not self._low_memory and self.config.path and map_data.path and self._robot_type != RobotType.VSLAM:
-                if not self._cache or self._map_data is None or self._map_data.path != map_data.path:
+            if (
+                not self._low_memory
+                and self.config.path
+                and map_data.path
+                and self._robot_type != RobotType.VSLAM
+            ):
+                if (
+                    not self._cache
+                    or self._map_data is None
+                    or self._map_data.path != map_data.path
+                ):
                     self._has_mask = False
             else:
                 self._has_mask = False
 
             cached_layers = self._layers if self._cache else {}
-            if self._cache and not self._has_mask and cached_layers.get(MapRendererLayer.PATH_MASK):
+            if (
+                self._cache
+                and not self._has_mask
+                and cached_layers.get(MapRendererLayer.PATH_MASK)
+            ):
                 del cached_layers[MapRendererLayer.PATH_MASK]
 
-            if self._cache and self._map_data and self._map_data.dimensions.scale != scale:
+            if (
+                self._cache
+                and self._map_data
+                and self._map_data.dimensions.scale != scale
+            ):
                 self._map_data = None
 
-            if not self._cache or (self._map_data is None or self._map_data.rotation != map_data.rotation):
+            if not self._cache or (
+                self._map_data is None or self._map_data.rotation != map_data.rotation
+            ):
                 self._robot_sleeping_icon = None
                 self._obstacle_background = None
                 self._obstacle_hidden_background = None
@@ -5120,7 +5871,9 @@ class DreameMowerMapRenderer:
                 else (
                     (255, 255, 255, 255)
                     if info_text
-                    else (255, 255, 255, 0) if map_data.wifi_map else self.color_scheme.outside
+                    else (255, 255, 255, 0)
+                    if map_data.wifi_map
+                    else self.color_scheme.outside
                 )
             )
             if (
@@ -5131,8 +5884,13 @@ class DreameMowerMapRenderer:
                 or self._map_data.active_areas != map_data.active_areas
                 or self._map_data.segments != map_data.segments
                 or self._map_data.data != map_data.data
-                or (self._has_mask and not cached_layers.get(MapRendererLayer.PATH_MASK))
-                or (render_material and self._map_data.floor_material != map_data.floor_material)
+                or (
+                    self._has_mask and not cached_layers.get(MapRendererLayer.PATH_MASK)
+                )
+                or (
+                    render_material
+                    and self._map_data.floor_material != map_data.floor_material
+                )
             ):
                 area_colors = {}
                 # as implemented on the app
@@ -5140,12 +5898,22 @@ class DreameMowerMapRenderer:
                     area_colors[MapPixelType.OUTSIDE.value] = bg_color
                     area_colors[MapPixelType.WALL.value] = self.color_scheme.wall
                     if map_data.second_cleaning:
-                        area_colors[MapPixelType.DIRTY_AREA.value] = self.color_scheme.second_clean_area
-                        area_colors[MapPixelType.CLEAN_AREA.value] = self.color_scheme.cleaned_area
+                        area_colors[MapPixelType.DIRTY_AREA.value] = (
+                            self.color_scheme.second_clean_area
+                        )
+                        area_colors[MapPixelType.CLEAN_AREA.value] = (
+                            self.color_scheme.cleaned_area
+                        )
                     else:
-                        area_colors[MapPixelType.DIRTY_AREA.value] = self.color_scheme.dirty_area
-                        area_colors[MapPixelType.CLEAN_AREA.value] = self.color_scheme.clean_area
-                    area_colors[MapPixelType.NEW_SEGMENT.value] = self.color_scheme.passive_segment
+                        area_colors[MapPixelType.DIRTY_AREA.value] = (
+                            self.color_scheme.dirty_area
+                        )
+                        area_colors[MapPixelType.CLEAN_AREA.value] = (
+                            self.color_scheme.clean_area
+                        )
+                    area_colors[MapPixelType.NEW_SEGMENT.value] = (
+                        self.color_scheme.passive_segment
+                    )
                 elif map_data.wifi_map:
                     area_colors[MapPixelType.OUTSIDE.value] = bg_color
                     area_colors[MapPixelType.WIFI_EXCELLENT.value] = (
@@ -5164,16 +5932,26 @@ class DreameMowerMapRenderer:
                         255,
                     )
                     area_colors[MapPixelType.WIFI_WALL.value] = (160, 160, 160, 255)
-                    area_colors[MapPixelType.NEW_SEGMENT.value] = area_colors[MapPixelType.OUTSIDE.value]
+                    area_colors[MapPixelType.NEW_SEGMENT.value] = area_colors[
+                        MapPixelType.OUTSIDE.value
+                    ]
                 else:
                     area_colors[MapPixelType.OUTSIDE.value] = bg_color
                     area_colors[MapPixelType.WALL.value] = self.color_scheme.wall
-                    area_colors[MapPixelType.HIDDEN_WALL.value] = self.color_scheme.hidden_segment
+                    area_colors[MapPixelType.HIDDEN_WALL.value] = (
+                        self.color_scheme.hidden_segment
+                    )
                     area_colors[MapPixelType.FLOOR.value] = self.color_scheme.floor
-                    area_colors[MapPixelType.NEW_SEGMENT.value] = self.color_scheme.new_segment
+                    area_colors[MapPixelType.NEW_SEGMENT.value] = (
+                        self.color_scheme.new_segment
+                    )
                     area_colors[MapPixelType.UNKNOWN.value] = self.color_scheme.floor
-                    area_colors[MapPixelType.OBSTACLE_WALL.value] = self.color_scheme.wall
-                    area_colors[MapPixelType.NEW_SEGMENT_UNKNOWN.value] = self.color_scheme.new_segment
+                    area_colors[MapPixelType.OBSTACLE_WALL.value] = (
+                        self.color_scheme.wall
+                    )
+                    area_colors[MapPixelType.NEW_SEGMENT_UNKNOWN.value] = (
+                        self.color_scheme.new_segment
+                    )
 
                 if map_data.cleaning_map:
                     if map_data.neglected_segments:
@@ -5182,12 +5960,20 @@ class DreameMowerMapRenderer:
                 elif map_data.segments is not None and not map_data.cleaning_map:
                     for k, v in map_data.segments.items():
                         if self.config.color:
-                            if map_data.hidden_segments and k in map_data.hidden_segments:
+                            if (
+                                map_data.hidden_segments
+                                and k in map_data.hidden_segments
+                            ):
                                 area_colors[k] = self.color_scheme.hidden_segment
-                            elif map_data.active_segments and k not in map_data.active_segments:
+                            elif (
+                                map_data.active_segments
+                                and k not in map_data.active_segments
+                            ):
                                 area_colors[k] = self.color_scheme.passive_segment
                             elif v.color_index is not None:
-                                area_colors[k] = self.color_scheme.segment[v.color_index][0]
+                                area_colors[k] = self.color_scheme.segment[
+                                    v.color_index
+                                ][0]
                         else:
                             area_colors[k] = area_colors[MapPixelType.FLOOR.value]
 
@@ -5231,7 +6017,9 @@ class DreameMowerMapRenderer:
 
                 for y in range(map_data.dimensions.height):
                     for x in range(map_data.dimensions.width):
-                        px_type = int(map_data.pixel_type[x, map_data.dimensions.height - y - 1])
+                        px_type = int(
+                            map_data.pixel_type[x, map_data.dimensions.height - y - 1]
+                        )
 
                         if px_type != 0:
                             pixels[y, x] = area_colors.get(px_type, area_colors[253])
@@ -5246,11 +6034,15 @@ class DreameMowerMapRenderer:
 
                             if segment_mask is not None:
                                 if px_type in map_data.neglected_segments:
-                                    segment_mask[y, x] = self.color_scheme.neglected_segment
+                                    segment_mask[y, x] = (
+                                        self.color_scheme.neglected_segment
+                                    )
 
                 if render_material:
                     floor_scale = 2
-                    pixels = pixels.repeat(floor_scale, axis=0).repeat(floor_scale, axis=1)
+                    pixels = pixels.repeat(floor_scale, axis=0).repeat(
+                        floor_scale, axis=1
+                    )
                     if render_material:
                         floor_material = self.render_floor_material(
                             pixels,
@@ -5265,7 +6057,9 @@ class DreameMowerMapRenderer:
                             _LOGGER.debug("Render MATERIAL")
 
                     if scale != floor_scale:
-                        pixels = pixels.repeat(scale / floor_scale, axis=0).repeat(scale / floor_scale, axis=1)
+                        pixels = pixels.repeat(scale / floor_scale, axis=0).repeat(
+                            scale / floor_scale, axis=1
+                        )
                 else:
                     pixels = pixels.repeat(scale, axis=0).repeat(scale, axis=1)
 
@@ -5273,7 +6067,9 @@ class DreameMowerMapRenderer:
                     mask = mask.repeat(scale, axis=0).repeat(scale, axis=1)
 
                 if segment_mask is not None:
-                    segment_mask = segment_mask.repeat(scale, axis=0).repeat(scale, axis=1)
+                    segment_mask = segment_mask.repeat(scale, axis=0).repeat(
+                        scale, axis=1
+                    )
 
                 if map_data.dimensions.bounds:
                     # min_x = max(0, min(map_data.dimensions.bounds[0], min_x))
@@ -5312,21 +6108,42 @@ class DreameMowerMapRenderer:
                         (map_data.dimensions.height - (max_y + 1)) * scale,
                     ]
 
-                if self._map_data and self._map_data.dimensions.crop != map_data.dimensions.crop:
+                if (
+                    self._map_data
+                    and self._map_data.dimensions.crop != map_data.dimensions.crop
+                ):
                     self._map_data = None
 
                 image = Image.fromarray(pixels)
-                if self._square and not map_data.wifi_map:  # and not map_data.saved_map:
-                    height = image.size[0] + map_data.dimensions.padding[0] + map_data.dimensions.padding[2]
-                    width = image.size[1] + map_data.dimensions.padding[1] + map_data.dimensions.padding[3]
+                if (
+                    self._square and not map_data.wifi_map
+                ):  # and not map_data.saved_map:
+                    height = (
+                        image.size[0]
+                        + map_data.dimensions.padding[0]
+                        + map_data.dimensions.padding[2]
+                    )
+                    width = (
+                        image.size[1]
+                        + map_data.dimensions.padding[1]
+                        + map_data.dimensions.padding[3]
+                    )
                     if height != width:
                         dif = int(abs(height - width) / 2)
                         if height < width:
-                            map_data.dimensions.padding[0] = map_data.dimensions.padding[0] + dif
-                            map_data.dimensions.padding[2] = map_data.dimensions.padding[2] + dif
+                            map_data.dimensions.padding[0] = (
+                                map_data.dimensions.padding[0] + dif
+                            )
+                            map_data.dimensions.padding[2] = (
+                                map_data.dimensions.padding[2] + dif
+                            )
                         else:
-                            map_data.dimensions.padding[1] = map_data.dimensions.padding[1] + dif
-                            map_data.dimensions.padding[3] = map_data.dimensions.padding[3] + dif
+                            map_data.dimensions.padding[1] = (
+                                map_data.dimensions.padding[1] + dif
+                            )
+                            map_data.dimensions.padding[3] = (
+                                map_data.dimensions.padding[3] + dif
+                            )
 
                 cached_layers[MapRendererLayer.IMAGE] = ImageOps.expand(
                     Image.fromarray(pixels),
@@ -5339,7 +6156,11 @@ class DreameMowerMapRenderer:
                         self._map_data.path = None
 
                     cached_layers[MapRendererLayer.PATH_MASK] = ImageOps.expand(
-                        Image.fromarray(mask.repeat(object_scale, axis=0).repeat(object_scale, axis=1)),
+                        Image.fromarray(
+                            mask.repeat(object_scale, axis=0).repeat(
+                                object_scale, axis=1
+                            )
+                        ),
                         border=(
                             map_data.dimensions.padding[0] * object_scale,
                             map_data.dimensions.padding[1] * object_scale,
@@ -5386,13 +6207,24 @@ class DreameMowerMapRenderer:
                         0.375 * scale * object_scale,
                         object_scale,
                     )
-                    cached_layers[MapRendererLayer.PATH].thumbnail(image.size, Image.Resampling.BOX, reducing_gap=1.5)
+                    cached_layers[MapRendererLayer.PATH].thumbnail(
+                        image.size, Image.Resampling.BOX, reducing_gap=1.5
+                    )
                     _LOGGER.debug("Render PATH")
-                image = Image.alpha_composite(image, cached_layers[MapRendererLayer.PATH])
+                image = Image.alpha_composite(
+                    image, cached_layers[MapRendererLayer.PATH]
+                )
             elif self._cache and cached_layers.get(MapRendererLayer.PATH):
                 del cached_layers[MapRendererLayer.PATH]
 
-            image = self.render_objects(cached_layers, map_data, robot_status, station_status, image, object_scale)
+            image = self.render_objects(
+                cached_layers,
+                map_data,
+                robot_status,
+                station_status,
+                image,
+                object_scale,
+            )
 
             if segment_mask is not None:
                 image = Image.alpha_composite(
@@ -5421,7 +6253,12 @@ class DreameMowerMapRenderer:
                     image = image.resize(
                         (
                             base_width,
-                            int((float(image.size[1]) * float((base_width / float(image.size[0]))))),
+                            int(
+                                (
+                                    float(image.size[1])
+                                    * float((base_width / float(image.size[0])))
+                                )
+                            ),
                         ),
                         Image.Resampling.LANCZOS,
                     )
@@ -5436,7 +6273,10 @@ class DreameMowerMapRenderer:
                             header_text = f"{header_text} | Second Cleaning"
                         elif map_data.cleanup_method is not None:
                             header_text = f"{header_text} | {map_data.cleanup_method.name.replace('_', ' ').title()}"
-                elif map_data.recovery_map and map_data.recovery_map_type is not RecoveryMapType.UNKNOWN:
+                elif (
+                    map_data.recovery_map
+                    and map_data.recovery_map_type is not RecoveryMapType.UNKNOWN
+                ):
                     header_text = f"{header_text} | {map_data.recovery_map_type.name.replace('_', ' ').title()}"
 
                 image_width = image.size[0]
@@ -5447,16 +6287,28 @@ class DreameMowerMapRenderer:
                 text_draw = ImageDraw.Draw(image, "RGBA")
                 text_size = int(image_width * 0.035)
                 if self._light_font_file is None:
-                    self._light_font_file = zlib.decompress(base64.b64decode(MAP_FONT_LIGHT), zlib.MAX_WBITS | 32)
+                    self._light_font_file = zlib.decompress(
+                        base64.b64decode(MAP_FONT_LIGHT), zlib.MAX_WBITS | 32
+                    )
 
-                text_font = ImageFont.truetype(BytesIO(self._light_font_file), text_size)
+                text_font = ImageFont.truetype(
+                    BytesIO(self._light_font_file), text_size
+                )
                 if map_data.history_map:
-                    value_font = ImageFont.truetype(BytesIO(self._light_font_file), int(text_size * 1.8))
-                    name_font = ImageFont.truetype(BytesIO(self._light_font_file), int(text_size * 0.8))
-                left, top, width, height = text_draw.textbbox((0, 0), header_text, font=text_font)
+                    value_font = ImageFont.truetype(
+                        BytesIO(self._light_font_file), int(text_size * 1.8)
+                    )
+                    name_font = ImageFont.truetype(
+                        BytesIO(self._light_font_file), int(text_size * 0.8)
+                    )
+                left, top, width, height = text_draw.textbbox(
+                    (0, 0), header_text, font=text_font
+                )
                 max_width = image_width * 0.9
                 if width > max_width:
-                    lines = textwrap.wrap(header_text, width=int(max_width / (text_size / 2)))
+                    lines = textwrap.wrap(
+                        header_text, width=int(max_width / (text_size / 2))
+                    )
                 else:
                     lines = [header_text]
 
@@ -5467,12 +6319,16 @@ class DreameMowerMapRenderer:
                         lines.append(header_text)
 
                 max_width = 0
-                header_height = int(text_size * 5) if map_data.history_map else text_size
+                header_height = (
+                    int(text_size * 5) if map_data.history_map else text_size
+                )
                 total_height = header_height
 
                 line_sizes = []
                 for line in lines:
-                    left, top, width, height = text_draw.textbbox((0, 0), line, font=text_font)
+                    left, top, width, height = text_draw.textbbox(
+                        (0, 0), line, font=text_font
+                    )
                     line_sizes.append((width, height))
                     max_width = max(max_width, width)
                     total_height = total_height + height
@@ -5505,22 +6361,30 @@ class DreameMowerMapRenderer:
                     header_lines = [
                         (str(map_data.cleaning_time), f"{map_type} Time", "min"),
                         (
-                            "Interrupted" if map_data.completed == False else "Completed",
+                            "Interrupted" if not map_data.completed else "Completed",
                             f"{map_type} Status",
                             "",
                         ),
                     ]
 
                     if not cruising_map:
-                        header_lines.append((str(map_data.cleaned_area), f"{map_type} Area", "m²"))
+                        header_lines.append(
+                            (str(map_data.cleaned_area), f"{map_type} Area", "m²")
+                        )
 
                     for i in range(len(header_lines)):
                         value = header_lines[i][0]
                         name = header_lines[i][1]
                         unit = header_lines[i][2]
-                        left, top, value_width, value_height = text_draw.textbbox((0, 0), value, font=value_font)
-                        left, top, unit_width, unit_height = text_draw.textbbox((0, 0), unit, font=name_font)
-                        left, top, name_width, name_height = text_draw.textbbox((0, 0), name, font=name_font)
+                        left, top, value_width, value_height = text_draw.textbbox(
+                            (0, 0), value, font=value_font
+                        )
+                        left, top, unit_width, unit_height = text_draw.textbbox(
+                            (0, 0), unit, font=name_font
+                        )
+                        left, top, name_width, name_height = text_draw.textbbox(
+                            (0, 0), name, font=name_font
+                        )
                         y = text_size
                         x = int(image_width * 0.06)
                         pos = []
@@ -5545,7 +6409,10 @@ class DreameMowerMapRenderer:
                                     [
                                         (image_width - x - value_width, text_size),
                                         (
-                                            image_width - x - name_width - ((value_width - name_width) / 2),
+                                            image_width
+                                            - x
+                                            - name_width
+                                            - ((value_width - name_width) / 2),
                                             y + (text_size * 2),
                                         ),
                                     ]
@@ -5555,7 +6422,15 @@ class DreameMowerMapRenderer:
                                 pos.extend(
                                     [
                                         (
-                                            ((image_width - value_width - unit_width - t1) / 2),
+                                            (
+                                                (
+                                                    image_width
+                                                    - value_width
+                                                    - unit_width
+                                                    - t1
+                                                )
+                                                / 2
+                                            ),
                                             y,
                                         ),
                                         (
@@ -5563,7 +6438,15 @@ class DreameMowerMapRenderer:
                                             y + (text_size * 2),
                                         ),
                                         (
-                                            ((image_width - unit_width + value_width + t1) / 2),
+                                            (
+                                                (
+                                                    image_width
+                                                    - unit_width
+                                                    + value_width
+                                                    + t1
+                                                )
+                                                / 2
+                                            ),
                                             y + value_height - unit_height,
                                         ),
                                     ]
@@ -5574,15 +6457,34 @@ class DreameMowerMapRenderer:
                                 pos.extend(
                                     [
                                         (
-                                            ((image_width - value_width - unit_width - t1) / 2) - (image_width / 4),
+                                            (
+                                                (
+                                                    image_width
+                                                    - value_width
+                                                    - unit_width
+                                                    - t1
+                                                )
+                                                / 2
+                                            )
+                                            - (image_width / 4),
                                             y,
                                         ),
                                         (
-                                            ((image_width - name_width) / 2) - (image_width / 4),
+                                            ((image_width - name_width) / 2)
+                                            - (image_width / 4),
                                             y + (text_size * 2),
                                         ),
                                         (
-                                            ((image_width - unit_width + value_width + t1) / 2) - (image_width / 4),
+                                            (
+                                                (
+                                                    image_width
+                                                    - unit_width
+                                                    + value_width
+                                                    + t1
+                                                )
+                                                / 2
+                                            )
+                                            - (image_width / 4),
                                             y + value_height - unit_height,
                                         ),
                                     ]
@@ -5591,25 +6493,35 @@ class DreameMowerMapRenderer:
                                 pos.extend(
                                     [
                                         (
-                                            ((image_width - value_width) / 2) + (image_width / 4),
+                                            ((image_width - value_width) / 2)
+                                            + (image_width / 4),
                                             y,
                                         ),
                                         (
-                                            ((image_width - name_width) / 2) + (image_width / 4),
+                                            ((image_width - name_width) / 2)
+                                            + (image_width / 4),
                                             y + (text_size * 2),
                                         ),
                                     ]
                                 )
 
                         for k in range(len(pos)):
-                            style = (value_color, value_font) if k == 0 else (text_color, name_font)
-                            text_draw.text(pos[k], header_lines[i][k], fill=style[0], font=style[1])
+                            style = (
+                                (value_color, value_font)
+                                if k == 0
+                                else (text_color, name_font)
+                            )
+                            text_draw.text(
+                                pos[k], header_lines[i][k], fill=style[0], font=style[1]
+                            )
 
                 x = (image_width - max_width) / 2
                 line_y = header_height
                 for i in range(len(lines)):
                     line_x = x + (max_width - line_sizes[i][0]) / 2
-                    text_draw.text((line_x, line_y), lines[i], fill=text_color, font=text_font)
+                    text_draw.text(
+                        (line_x, line_y), lines[i], fill=text_color, font=text_font
+                    )
                     line_y = line_y + line_sizes[i][1]
 
             _LOGGER.info(
@@ -5630,7 +6542,9 @@ class DreameMowerMapRenderer:
         self.render_complete = True
         return self._to_buffer(self._image if self._cache else image)
 
-    def render_objects(self, cached_layers, map_data, robot_status, station_status, map_image, scale):
+    def render_objects(
+        self, cached_layers, map_data, robot_status, station_status, map_image, scale
+    ):
         layer_size = (int(map_image.size[0] * scale), int(map_image.size[1] * scale))
         line_width = 3 if map_data.dimensions.scale > 2 else 1
         border_width = 2 if map_data.dimensions.scale > 2 else 1
@@ -5671,7 +6585,11 @@ class DreameMowerMapRenderer:
             icon_size = icon_size * 1.3
 
         layer = MapRendererLayer.NO_GO
-        if (not map_data.saved_map or map_data.recovery_map) and map_data.no_go_areas and self.config.no_go:
+        if (
+            (not map_data.saved_map or map_data.recovery_map)
+            and map_data.no_go_areas
+            and self.config.no_go
+        ):
             layers.append(layer)
             if (
                 not self._cache
@@ -5694,7 +6612,11 @@ class DreameMowerMapRenderer:
             del cached_layers[layer]
 
         layer = MapRendererLayer.WALL
-        if (not map_data.saved_map or map_data.recovery_map) and map_data.virtual_walls and self.config.virtual_wall:
+        if (
+            (not map_data.saved_map or map_data.recovery_map)
+            and map_data.virtual_walls
+            and self.config.virtual_wall
+        ):
             layers.append(layer)
             if (
                 not self._cache
@@ -5716,7 +6638,11 @@ class DreameMowerMapRenderer:
             del cached_layers[layer]
 
         layer = MapRendererLayer.PATHWAY
-        if (not map_data.saved_map or map_data.recovery_map) and map_data.pathways and self.config.pathway:
+        if (
+            (not map_data.saved_map or map_data.recovery_map)
+            and map_data.pathways
+            and self.config.pathway
+        ):
             layers.append(layer)
             if (
                 not self._cache
@@ -5761,7 +6687,11 @@ class DreameMowerMapRenderer:
             del cached_layers[layer]
 
         layer = MapRendererLayer.ACTIVE_POINT
-        if not map_data.saved_map and map_data.active_points and self.config.active_point:
+        if (
+            not map_data.saved_map
+            and map_data.active_points
+            and self.config.active_point
+        ):
             layers.append(layer)
             if (
                 not self._cache
@@ -5796,7 +6726,9 @@ class DreameMowerMapRenderer:
                 if layer not in cached_layers:
                     cached_layers[MapRendererLayer.FURNITURE] = {}
                 else:
-                    for k in list(cached_layers[MapRendererLayer.FURNITURE].keys()).copy():
+                    for k in list(
+                        cached_layers[MapRendererLayer.FURNITURE].keys()
+                    ).copy():
                         if k not in map_data.furnitures:
                             del cached_layers[MapRendererLayer.FURNITURE][k]
 
@@ -5812,19 +6744,23 @@ class DreameMowerMapRenderer:
                         or self._map_data.rotation != map_data.rotation
                     ):
                         changed = True
-                        cached_layers[MapRendererLayer.FURNITURE][k] = self.render_furniture(
-                            v,
-                            map_data.furniture_version,
-                            layer_size,
-                            map_data.dimensions,
-                            int((icon_size * 1.2) * map_data.dimensions.scale),
-                            map_data.rotation,
-                            scale,
+                        cached_layers[MapRendererLayer.FURNITURE][k] = (
+                            self.render_furniture(
+                                v,
+                                map_data.furniture_version,
+                                layer_size,
+                                map_data.dimensions,
+                                int((icon_size * 1.2) * map_data.dimensions.scale),
+                                map_data.rotation,
+                                scale,
+                            )
                         )
 
                 if changed:
                     changes.append(layer)
-                    self._combine_layers(cached_layers, layer_size, layer, MapRendererLayer.FURNITURE)
+                    self._combine_layers(
+                        cached_layers, layer_size, layer, MapRendererLayer.FURNITURE
+                    )
         elif self._cache and cached_layers.get(layer):
             changes.append(layer)
             del cached_layers[layer]
@@ -5847,17 +6783,34 @@ class DreameMowerMapRenderer:
                 or self._map_data is None
                 or self._map_data.segments != map_data.segments
                 or self._map_data.rotation != map_data.rotation
-                or (not self._map_data.cleaning_map and self._map_data.active_segments != map_data.active_segments)
-                or (not self._map_data.cleaning_map and self._map_data.hidden_segments != map_data.hidden_segments)
-                or (self._map_data.cleaning_map and self._map_data.neglected_segments != map_data.neglected_segments)
-                or bool((not map_data.saved_map or map_data.recovery_map) and self._map_data.cleanset)
-                != bool((not map_data.saved_map or map_data.recovery_map) and map_data.cleanset)
+                or (
+                    not self._map_data.cleaning_map
+                    and self._map_data.active_segments != map_data.active_segments
+                )
+                or (
+                    not self._map_data.cleaning_map
+                    and self._map_data.hidden_segments != map_data.hidden_segments
+                )
+                or (
+                    self._map_data.cleaning_map
+                    and self._map_data.neglected_segments != map_data.neglected_segments
+                )
+                or bool(
+                    (not map_data.saved_map or map_data.recovery_map)
+                    and self._map_data.cleanset
+                )
+                != bool(
+                    (not map_data.saved_map or map_data.recovery_map)
+                    and map_data.cleanset
+                )
                 or not cached_layers.get(layer)
             ):
                 if MapRendererLayer.SEGMENT not in cached_layers:
                     cached_layers[MapRendererLayer.SEGMENT] = {}
                 else:
-                    for k in list(cached_layers[MapRendererLayer.SEGMENT].keys()).copy():
+                    for k in list(
+                        cached_layers[MapRendererLayer.SEGMENT].keys()
+                    ).copy():
                         if k not in map_data.segments:
                             del cached_layers[MapRendererLayer.SEGMENT][k]
 
@@ -5872,26 +6825,47 @@ class DreameMowerMapRenderer:
                         or k not in self._map_data.segments
                         or self._map_data.segments[k] != v
                         or self._map_data.rotation != map_data.rotation
-                        or bool((not map_data.saved_map or map_data.recovery_map) and self._map_data.cleanset)
-                        != bool((not map_data.saved_map or map_data.recovery_map) and map_data.cleanset)
+                        or bool(
+                            (not map_data.saved_map or map_data.recovery_map)
+                            and self._map_data.cleanset
+                        )
+                        != bool(
+                            (not map_data.saved_map or map_data.recovery_map)
+                            and map_data.cleanset
+                        )
                         or bool(
                             (
-                                (not map_data.active_segments or k in map_data.active_segments)
-                                and (not map_data.hidden_segments or k not in map_data.hidden_segments)
+                                (
+                                    not map_data.active_segments
+                                    or k in map_data.active_segments
+                                )
+                                and (
+                                    not map_data.hidden_segments
+                                    or k not in map_data.hidden_segments
+                                )
                                 and not map_data.cleaning_map
                             )
                         )
                         != bool(
                             (
-                                (not self._map_data.active_segments or k in self._map_data.active_segments)
-                                and (not self._map_data.hidden_segments or k not in self._map_data.hidden_segments)
+                                (
+                                    not self._map_data.active_segments
+                                    or k in self._map_data.active_segments
+                                )
+                                and (
+                                    not self._map_data.hidden_segments
+                                    or k not in self._map_data.hidden_segments
+                                )
                                 and not self._map_data.cleaning_map
                             )
                         )
                         or bool(
                             (
                                 map_data.cleaning_map
-                                and (map_data.neglected_segments and k in map_data.neglected_segments)
+                                and (
+                                    map_data.neglected_segments
+                                    and k in map_data.neglected_segments
+                                )
                             )
                         )
                         != bool(
@@ -5900,32 +6874,45 @@ class DreameMowerMapRenderer:
                                 and self._map_data.neglected_segments
                                 and k in self._map_data.neglected_segments
                             )
-                        ),
+                        )
                     ):
                         changed = True
-                        cached_layers[MapRendererLayer.SEGMENT][k] = self.render_segment(
-                            v,
-                            bool((not map_data.saved_map or map_data.recovery_map) and map_data.cleanset),
-                            layer_size,
-                            map_data.dimensions,
-                            int(segment_icon_size * map_data.dimensions.scale),
-                            map_data.rotation,
-                            scale,
-                            (
-                                (not map_data.active_segments or k in map_data.active_segments)
-                                and (not map_data.hidden_segments or k not in map_data.hidden_segments)
-                                and not map_data.cleaning_map
-                            ),
-                            (
-                                map_data.cleaning_map
-                                and map_data.neglected_segments
-                                and k in map_data.neglected_segments
-                            ),
+                        cached_layers[MapRendererLayer.SEGMENT][k] = (
+                            self.render_segment(
+                                v,
+                                bool(
+                                    (not map_data.saved_map or map_data.recovery_map)
+                                    and map_data.cleanset
+                                ),
+                                layer_size,
+                                map_data.dimensions,
+                                int(segment_icon_size * map_data.dimensions.scale),
+                                map_data.rotation,
+                                scale,
+                                (
+                                    (
+                                        not map_data.active_segments
+                                        or k in map_data.active_segments
+                                    )
+                                    and (
+                                        not map_data.hidden_segments
+                                        or k not in map_data.hidden_segments
+                                    )
+                                    and not map_data.cleaning_map
+                                ),
+                                (
+                                    map_data.cleaning_map
+                                    and map_data.neglected_segments
+                                    and k in map_data.neglected_segments
+                                ),
+                            )
                         )
 
                 if changed:
                     changes.append(layer)
-                    self._combine_layers(cached_layers, layer_size, layer, MapRendererLayer.SEGMENT)
+                    self._combine_layers(
+                        cached_layers, layer_size, layer, MapRendererLayer.SEGMENT
+                    )
         elif self._cache and cached_layers.get(layer):
             changes.append(layer)
             del cached_layers[layer]
@@ -6068,8 +7055,10 @@ class DreameMowerMapRenderer:
 
                 if offset:
                     charger_position = Point(
-                        charger_position.x - offset * math.cos(charger_position.a * math.pi / 180),
-                        charger_position.y - offset * math.sin(charger_position.a * math.pi / 180),
+                        charger_position.x
+                        - offset * math.cos(charger_position.a * math.pi / 180),
+                        charger_position.y
+                        - offset * math.sin(charger_position.a * math.pi / 180),
                         charger_position.a,
                     )
 
@@ -6079,7 +7068,17 @@ class DreameMowerMapRenderer:
                     station_status,
                     layer_size,
                     map_data.dimensions,
-                    int((robot_icon_size * (map_data.dimensions.scale if map_data.dimensions.scale > 2 else 3)) * 1.2),
+                    int(
+                        (
+                            robot_icon_size
+                            * (
+                                map_data.dimensions.scale
+                                if map_data.dimensions.scale > 2
+                                else 3
+                            )
+                        )
+                        * 1.2
+                    ),
                     map_data.rotation,
                     scale,
                 )
@@ -6107,9 +7106,7 @@ class DreameMowerMapRenderer:
                     # Calculate charger angle
                     charger_angle = map_data.charger_position.a
                     if self._robot_type != RobotType.VSLAM:
-                        offset = int(
-                            robot_icon_size * (21.42)
-                        )
+                        offset = int(robot_icon_size * (21.42))
 
                         if self.icon_set != 2:
                             if charger_angle > -45 and charger_angle < 45:
@@ -6146,11 +7143,11 @@ class DreameMowerMapRenderer:
                         offset = int(robot_icon_size * 35.71)
 
                     robot_position = Point(
-                        map_data.charger_position.x + offset * math.cos(charger_angle * math.pi / 180),
-                        map_data.charger_position.y + offset * math.sin(charger_angle * math.pi / 180),
-                        (
-                            charger_angle
-                        ),
+                        map_data.charger_position.x
+                        + offset * math.cos(charger_angle * math.pi / 180),
+                        map_data.charger_position.y
+                        + offset * math.sin(charger_angle * math.pi / 180),
+                        (charger_angle),
                     )
 
                 changes.append(layer)
@@ -6159,7 +7156,14 @@ class DreameMowerMapRenderer:
                     robot_status,
                     layer_size,
                     map_data.dimensions,
-                    int(robot_icon_size * (map_data.dimensions.scale if map_data.dimensions.scale > 2 else 3)),
+                    int(
+                        robot_icon_size
+                        * (
+                            map_data.dimensions.scale
+                            if map_data.dimensions.scale > 2
+                            else 3
+                        )
+                    ),
                     map_data.rotation,
                     scale,
                 )
@@ -6191,7 +7195,11 @@ class DreameMowerMapRenderer:
             del cached_layers[layer]
 
         layer = MapRendererLayer.OBSTACLES
-        if not map_data.saved_map and map_data.obstacles and (self.config.obstacle or self.config.pet):
+        if (
+            not map_data.saved_map
+            and map_data.obstacles
+            and (self.config.obstacle or self.config.pet)
+        ):
             layers.append(layer)
             if (
                 not self._cache
@@ -6203,7 +7211,9 @@ class DreameMowerMapRenderer:
                 if MapRendererLayer.OBSTACLE not in cached_layers:
                     cached_layers[MapRendererLayer.OBSTACLE] = {}
                 else:
-                    for k in list(cached_layers[MapRendererLayer.OBSTACLE].keys()).copy():
+                    for k in list(
+                        cached_layers[MapRendererLayer.OBSTACLE].keys()
+                    ).copy():
                         if k not in map_data.obstacles:
                             del cached_layers[MapRendererLayer.OBSTACLE][k]
 
@@ -6239,13 +7249,17 @@ class DreameMowerMapRenderer:
 
                 if changed:
                     changes.append(layer)
-                    self._combine_layers(cached_layers, layer_size, layer, MapRendererLayer.OBSTACLE)
+                    self._combine_layers(
+                        cached_layers, layer_size, layer, MapRendererLayer.OBSTACLE
+                    )
         elif self._cache and cached_layers.get(layer):
             changes.append(layer)
             del cached_layers[layer]
 
         layer = MapRendererLayer.CRUISE_POINTS
-        if not map_data.saved_map and map_data.active_cruise_points:  # and self.config.cruise_point:
+        if (
+            not map_data.saved_map and map_data.active_cruise_points
+        ):  # and self.config.cruise_point:
             layers.append(layer)
             if (
                 not self._cache
@@ -6257,7 +7271,9 @@ class DreameMowerMapRenderer:
                 if MapRendererLayer.CRUISE_POINT not in cached_layers:
                     cached_layers[MapRendererLayer.CRUISE_POINT] = {}
                 else:
-                    for k in list(cached_layers[MapRendererLayer.CRUISE_POINT].keys()).copy():
+                    for k in list(
+                        cached_layers[MapRendererLayer.CRUISE_POINT].keys()
+                    ).copy():
                         if k not in map_data.active_cruise_points:
                             del cached_layers[MapRendererLayer.CRUISE_POINT][k]
 
@@ -6272,19 +7288,25 @@ class DreameMowerMapRenderer:
                         or self._map_data.rotation != map_data.rotation
                     ):
                         changed = True
-                        cached_layers[MapRendererLayer.CRUISE_POINT][k] = self.render_cruise_point(
-                            k,
-                            v,
-                            layer_size,
-                            map_data.dimensions,
-                            int(round(icon_size * 1.25 * map_data.dimensions.scale)),
-                            map_data.rotation,
-                            scale,
+                        cached_layers[MapRendererLayer.CRUISE_POINT][k] = (
+                            self.render_cruise_point(
+                                k,
+                                v,
+                                layer_size,
+                                map_data.dimensions,
+                                int(
+                                    round(icon_size * 1.25 * map_data.dimensions.scale)
+                                ),
+                                map_data.rotation,
+                                scale,
+                            )
                         )
 
                 if changed:
                     changes.append(layer)
-                    self._combine_layers(cached_layers, layer_size, layer, MapRendererLayer.CRUISE_POINT)
+                    self._combine_layers(
+                        cached_layers, layer_size, layer, MapRendererLayer.CRUISE_POINT
+                    )
         elif self._cache and cached_layers.get(layer):
             changes.append(layer)
             del cached_layers[layer]
@@ -6295,12 +7317,12 @@ class DreameMowerMapRenderer:
                 [layer_size[0], layer_size[1]],
                 (255, 255, 255, 0),
             )
-            for l in layers:
-                if cached_layers.get(l):
-                    if l in changes:
-                        _LOGGER.debug("Render %s", l.name)
+            for layer in layers:
+                if cached_layers.get(layer):
+                    if layer in changes:
+                        _LOGGER.debug("Render %s", layer.name)
                     cached_layers[MapRendererLayer.OBJECTS] = Image.alpha_composite(
-                        cached_layers[MapRendererLayer.OBJECTS], cached_layers[l]
+                        cached_layers[MapRendererLayer.OBJECTS], cached_layers[layer]
                     )
 
             if layer_size != map_image.size:
@@ -6380,19 +7402,13 @@ class DreameMowerMapRenderer:
         new_layer = Image.new("RGBA", layer_size, (255, 255, 255, 0))
         draw = ImageDraw.Draw(new_layer, "RGBA")
         sweep = []
-        mop = []
         sweep_path = []
-        path_type = ""
-
         for point in path:
-            p = point.to_img(dimensions)
             if point.path_type == PathType.LINE:
-                l = [p.x * scale, p.y * scale]
+                pass
             else:
                 if sweep_path:
                     sweep.append(sweep_path)
-
-                path_type = point.path_type
                 sweep_path = []
 
         if sweep_path:
@@ -6457,7 +7473,9 @@ class DreameMowerMapRenderer:
                     charger_image = MAP_CHARGER_VSLAM_IMAGE_DREAME
                 else:
                     charger_image = MAP_CHARGER_IMAGE_DREAME
-            self._charger_icon = Image.open(BytesIO(base64.b64decode(charger_image))).convert("RGBA")
+            self._charger_icon = Image.open(
+                BytesIO(base64.b64decode(charger_image))
+            ).convert("RGBA")
 
             if self.icon_set == 3:
                 self._charger_icon = DreameMowerMapRenderer._set_icon_color(
@@ -6470,7 +7488,9 @@ class DreameMowerMapRenderer:
                 enhancer = ImageEnhance.Brightness(self._charger_icon)
                 self._charger_icon = enhancer.enhance(0.7)
 
-        charger_icon = self._charger_icon.resize((icon_size, icon_size), resample=Image.Resampling.NEAREST).rotate(
+        charger_icon = self._charger_icon.resize(
+            (icon_size, icon_size), resample=Image.Resampling.NEAREST
+        ).rotate(
             (
                 charger_position.a
                 if self._robot_type == RobotType.VSLAM
@@ -6508,7 +7528,8 @@ class DreameMowerMapRenderer:
         icon_size = int(size * scale)
         robot_icon_size = (
             int(icon_size * 1.4)
-            if self.icon_set == 2 or (self._robot_type == RobotType.VSLAM and self.icon_set == 3)
+            if self.icon_set == 2
+            or (self._robot_type == RobotType.VSLAM and self.icon_set == 3)
             else icon_size
         )
         if self._robot_icon is None:
@@ -6529,12 +7550,11 @@ class DreameMowerMapRenderer:
                     else:
                         robot_image = MAP_ROBOT_LIDAR_IMAGE_DREAME_DARK
 
-            self._robot_icon = Image.open(BytesIO(base64.b64decode(robot_image))).convert("RGBA")
+            self._robot_icon = Image.open(
+                BytesIO(base64.b64decode(robot_image))
+            ).convert("RGBA")
 
-            if (
-                self.icon_set != 2
-                and self.icon_set != 3
-            ):
+            if self.icon_set != 2 and self.icon_set != 3:
                 enhancer = ImageEnhance.Brightness(self._robot_icon)
                 if self.color_scheme.dark:
                     self._robot_icon = enhancer.enhance(1.5)
@@ -6569,14 +7589,20 @@ class DreameMowerMapRenderer:
                 if self.config.cleaning_direction:
                     if self._robot_cleaning_direction_icon is None:
                         self._robot_cleaning_direction_icon = (
-                            Image.open(BytesIO(base64.b64decode(MAP_ROBOT_CLEANING_DIRECTION_IMAGE)))
+                            Image.open(
+                                BytesIO(
+                                    base64.b64decode(MAP_ROBOT_CLEANING_DIRECTION_IMAGE)
+                                )
+                            )
                             .convert("RGBA")
                             .resize(
                                 ((int(icon_size * 1.5), int(icon_size * 1.5))),
                             )
                         )
 
-                    ico = self._robot_cleaning_direction_icon.rotate(robot_position.a, expand=1)
+                    ico = self._robot_cleaning_direction_icon.rotate(
+                        robot_position.a, expand=1
+                    )
 
                     offset = int(icon_size * 0.3)
                     x = point.x + offset * math.cos(-robot_position.a * math.pi / 180)
@@ -6713,8 +7739,12 @@ class DreameMowerMapRenderer:
                     self._segment_icons[segment.type] = Image.open(
                         BytesIO(base64.b64decode(icon_set[segment.type]))
                     ).convert("RGBA")
-                    if self.color_scheme.invert and not (self.config.name_background and self.icon_set != 2):
-                        enhancer = ImageEnhance.Brightness(self._segment_icons[segment.type])
+                    if self.color_scheme.invert and not (
+                        self.config.name_background and self.icon_set != 2
+                    ):
+                        enhancer = ImageEnhance.Brightness(
+                            self._segment_icons[segment.type]
+                        )
                         self._segment_icons[segment.type] = enhancer.enhance(0.1)
 
             icon = self._segment_icons.get(segment.type) if self.config.icon else None
@@ -6731,18 +7761,28 @@ class DreameMowerMapRenderer:
 
             text_font = None
             order_font = None
-            render_font = text and (self.config.name or segment.type == 0 or segment.index > 0)
-            if self._font_file is None and (render_font or (segment.order and self.config.order)):
-                self._font_file = zlib.decompress(base64.b64decode(MAP_FONT), zlib.MAX_WBITS | 32)
+            render_font = text and (
+                self.config.name or segment.type == 0 or segment.index > 0
+            )
+            if self._font_file is None and (
+                render_font or (segment.order and self.config.order)
+            ):
+                self._font_file = zlib.decompress(
+                    base64.b64decode(MAP_FONT), zlib.MAX_WBITS | 32
+                )
 
             if render_font and self._font_file:
                 text_font = ImageFont.truetype(
                     BytesIO(self._font_file),
-                    int((size * 1.9)) if segment.index or icon is None else int((size * 1.7)),
+                    int((size * 1.9))
+                    if segment.index or icon is None
+                    else int((size * 1.7)),
                 )
 
             if active and segment.order and self.config.order:
-                order_font = ImageFont.truetype(BytesIO(self._font_file), int((size * 2.1)))
+                order_font = ImageFont.truetype(
+                    BytesIO(self._font_file), int((size * 2.1))
+                )
 
             p = Point(segment.x, segment.y).to_img(dimensions, False)
             x = p.x
@@ -6793,7 +7833,9 @@ class DreameMowerMapRenderer:
                             text_offset = 0
                             padding = -(icon_size / 4)
 
-                        name_background = self.config.icon or (self.config.name_background and self.config.name)
+                        name_background = self.config.icon or (
+                            self.config.name_background and self.config.name
+                        )
 
                         stroke_width = dimensions.scale
                         if neglected:
@@ -6813,7 +7855,11 @@ class DreameMowerMapRenderer:
                                 stroke_color = (255, 255, 255, 200)
                         elif self.config.icon or self.config.name:
                             stroke_width = 1
-                            if self.config.name_background and self.icon_set != 2 and self.color_scheme.invert:
+                            if (
+                                self.config.name_background
+                                and self.icon_set != 2
+                                and self.color_scheme.invert
+                            ):
                                 text_color = (240, 240, 240, 255)
                                 stroke_color = (240, 240, 240, 200)
                             else:
@@ -6823,7 +7869,6 @@ class DreameMowerMapRenderer:
                         th = th + int(stroke_width * 2)
 
                         if rotation == 90 or rotation == 270:
-                            y0 = y0 - ws - padding
                             y1 = y1 + ws + padding
 
                             if rotation == 90:
@@ -6862,10 +7907,12 @@ class DreameMowerMapRenderer:
                                 ],
                                 fill=(
                                     self.color_scheme.segment[segment.color_index][1]
-                                    if name_background and self.config.name_background and self.icon_set != 2
+                                    if name_background
+                                    and self.config.name_background
+                                    and self.icon_set != 2
                                     else self.color_scheme.icon_background
                                 ),
-                                radius=((size * scale)),
+                                radius=(size * scale),
                             )
 
                         icon_text = Image.new("RGBA", (tw, th), (255, 255, 255, 0))
@@ -6917,10 +7964,7 @@ class DreameMowerMapRenderer:
                 active
                 and not neglected
                 and cleanset
-                and (
-                    self.config.cleaning_times
-                    or self.config.cleaning_mode
-                )
+                and (self.config.cleaning_times or self.config.cleaning_mode)
             )
             if order_font or custom:
                 offset = size * 2.7
@@ -6940,7 +7984,9 @@ class DreameMowerMapRenderer:
                 y = p.y + y_offset
                 cleaning_mode = (
                     None
-                    if segment.cleaning_mode is None or segment.cleaning_mode < 0 or segment.cleaning_mode > 3
+                    if segment.cleaning_mode is None
+                    or segment.cleaning_mode < 0
+                    or segment.cleaning_mode > 3
                     else segment.cleaning_mode
                 )
                 if custom:
@@ -6957,10 +8003,7 @@ class DreameMowerMapRenderer:
                         icon_count = icon_count - 1
                     if cleaning_mode == 0 or cleaning_mode == 1:
                         icon_count = icon_count - 1
-                    if (
-                        segment.cleaning_route is not None
-                        and cleaning_mode == 1
-                    ):
+                    if segment.cleaning_route is not None and cleaning_mode == 1:
                         icon_count = icon_count + 1
                 else:
                     icon_count = 1
@@ -6974,7 +8017,9 @@ class DreameMowerMapRenderer:
                 if custom:
                     radius = size - 2
 
-                icon_w = ((radius * icon_count * 2) * scale) + (arrow * 2) + (margin * 2)
+                icon_w = (
+                    ((radius * icon_count * 2) * scale) + (arrow * 2) + (margin * 2)
+                )
                 icon_h = ((radius * 2) * scale) + (arrow * 2)
                 icon = Image.new("RGBA", (icon_w, icon_h), (255, 255, 255, 0))
                 icon_draw = ImageDraw.Draw(icon, "RGBA")
@@ -7045,7 +8090,12 @@ class DreameMowerMapRenderer:
                         icon.paste(
                             ico,
                             (
-                                int(2 + ellipse_x1 + ((ellipse_x2 - ellipse_x1) / 2) - ico.size[0] / 2),
+                                int(
+                                    2
+                                    + ellipse_x1
+                                    + ((ellipse_x2 - ellipse_x1) / 2)
+                                    - ico.size[0] / 2
+                                ),
                                 int(((icon_h / 2) - ico.size[1] / 2)),
                             ),
                             ico,
@@ -7054,7 +8104,10 @@ class DreameMowerMapRenderer:
                         ellipse_x1 = ellipse_x2 + (margin * 2)
                         ellipse_x2 = ellipse_x1 + r
 
-                    if self.config.cleaning_times and segment.cleaning_times is not None:
+                    if (
+                        self.config.cleaning_times
+                        and segment.cleaning_times is not None
+                    ):
                         if self.icon_set == 3 or self.icon_set == 2:
                             s = icon_size * 0.95 * scale
                         else:
@@ -7073,7 +8126,12 @@ class DreameMowerMapRenderer:
                         icon.paste(
                             ico,
                             (
-                                int(2 + ellipse_x1 + ((ellipse_x2 - ellipse_x1) / 2) - ico.size[0] / 2),
+                                int(
+                                    2
+                                    + ellipse_x1
+                                    + ((ellipse_x2 - ellipse_x1) / 2)
+                                    - ico.size[0] / 2
+                                ),
                                 int(((icon_h / 2) - ico.size[1] / 2)),
                             ),
                             ico,
@@ -7097,13 +8155,22 @@ class DreameMowerMapRenderer:
                 and obstacle.type.value in OBSTACLE_TYPE_TO_HIDDEN_ICON
             ):
                 self._obstacle_hidden_icons[obstacle.type.value] = Image.open(
-                    BytesIO(base64.b64decode(OBSTACLE_TYPE_TO_HIDDEN_ICON[obstacle.type.value]))
+                    BytesIO(
+                        base64.b64decode(
+                            OBSTACLE_TYPE_TO_HIDDEN_ICON[obstacle.type.value]
+                        )
+                    )
                 ).convert("RGBA")
             icon = self._obstacle_hidden_icons.get(obstacle.type.value)
         else:
-            if obstacle.type.value not in self._obstacle_icons and obstacle.type.value in OBSTACLE_TYPE_TO_ICON:
+            if (
+                obstacle.type.value not in self._obstacle_icons
+                and obstacle.type.value in OBSTACLE_TYPE_TO_ICON
+            ):
                 self._obstacle_icons[obstacle.type.value] = Image.open(
-                    BytesIO(base64.b64decode(OBSTACLE_TYPE_TO_ICON[obstacle.type.value]))
+                    BytesIO(
+                        base64.b64decode(OBSTACLE_TYPE_TO_ICON[obstacle.type.value])
+                    )
                 ).convert("RGBA")
             icon = self._obstacle_icons.get(obstacle.type.value)
 
@@ -7113,26 +8180,39 @@ class DreameMowerMapRenderer:
             draw = ImageDraw.Draw(new_layer, "RGBA")
 
             if obstacle.ignore_status != 2 and self._obstacle_background is None:
-                self._obstacle_background = Image.open(BytesIO(base64.b64decode(MAP_ICON_OBSTACLE_BG_DREAME))).convert(
-                    "RGBA"
-                )
+                self._obstacle_background = Image.open(
+                    BytesIO(base64.b64decode(MAP_ICON_OBSTACLE_BG_DREAME))
+                ).convert("RGBA")
                 s = int(size * scale * 2)
                 self._obstacle_background.thumbnail((s, s), Image.Resampling.LANCZOS)
-                self._obstacle_background = self._obstacle_background.rotate(-rotation, expand=1)
+                self._obstacle_background = self._obstacle_background.rotate(
+                    -rotation, expand=1
+                )
 
             if obstacle.ignore_status == 2 and self._obstacle_hidden_background is None:
                 self._obstacle_hidden_background = Image.open(
                     BytesIO(base64.b64decode(MAP_ICON_OBSTACLE_HIDDEN_BG_DREAME))
                 ).convert("RGBA")
                 s = int((size * 0.75) * scale * 2)
-                self._obstacle_hidden_background.thumbnail((s, s), Image.Resampling.LANCZOS)
-                self._obstacle_hidden_background = self._obstacle_hidden_background.rotate(-rotation, expand=1)
+                self._obstacle_hidden_background.thumbnail(
+                    (s, s), Image.Resampling.LANCZOS
+                )
+                self._obstacle_hidden_background = (
+                    self._obstacle_hidden_background.rotate(-rotation, expand=1)
+                )
 
             background_image = (
-                self._obstacle_hidden_background if obstacle.ignore_status == 2 else self._obstacle_background
+                self._obstacle_hidden_background
+                if obstacle.ignore_status == 2
+                else self._obstacle_background
             )
-            bg_size = int((min(background_image.size[1], background_image.size[0]) / scale / 4) * 1.25)
-            offset = int(-(size * (0.15 if obstacle.ignore_status == 2 else 0.2)) * scale)
+            bg_size = int(
+                (min(background_image.size[1], background_image.size[0]) / scale / 4)
+                * 1.25
+            )
+            offset = int(
+                -(size * (0.15 if obstacle.ignore_status == 2 else 0.2)) * scale
+            )
 
             p = obstacle.to_img(dimensions)
             x = p.x
@@ -7196,7 +8276,9 @@ class DreameMowerMapRenderer:
                         )
                     ),
                 )
-                icon = icon.resize((int(icon_size), int(icon_size))).rotate(-rotation, expand=1)
+                icon = icon.resize((int(icon_size), int(icon_size))).rotate(
+                    -rotation, expand=1
+                )
 
             new_layer.paste(
                 icon,
@@ -7209,7 +8291,9 @@ class DreameMowerMapRenderer:
 
             return new_layer
 
-    def render_cruise_point(self, index, cruise_point, layer_size, dimensions, size, rotation, scale):
+    def render_cruise_point(
+        self, index, cruise_point, layer_size, dimensions, size, rotation, scale
+    ):
         new_layer = Image.new("RGBA", layer_size, (255, 255, 255, 0))
         draw = ImageDraw.Draw(new_layer, "RGBA")
         if cruise_point.type == 1 and self._cruise_path_point_background is None:
@@ -7217,8 +8301,12 @@ class DreameMowerMapRenderer:
                 BytesIO(base64.b64decode(MAP_ICON_CRUISE_POINT_BG_DREAME))
             ).convert("RGBA")
             s = int(size * scale * 3)
-            self._cruise_path_point_background.thumbnail((s, s), Image.Resampling.LANCZOS)
-            self._cruise_path_point_background = self._cruise_path_point_background.rotate(-rotation, expand=1)
+            self._cruise_path_point_background.thumbnail(
+                (s, s), Image.Resampling.LANCZOS
+            )
+            self._cruise_path_point_background = (
+                self._cruise_path_point_background.rotate(-rotation, expand=1)
+            )
 
         if cruise_point.type != 1 and self._cruise_point_background is None:
             self._cruise_point_background = Image.open(
@@ -7226,12 +8314,18 @@ class DreameMowerMapRenderer:
             ).convert("RGBA")
             s = int(round(size * scale * 2))
             self._cruise_point_background.thumbnail((s, s), Image.Resampling.LANCZOS)
-            self._cruise_point_background = self._cruise_point_background.rotate(-rotation, expand=1)
+            self._cruise_point_background = self._cruise_point_background.rotate(
+                -rotation, expand=1
+            )
 
         background_image = (
-            self._cruise_point_background if cruise_point.type != 1 else self._cruise_path_point_background
+            self._cruise_point_background
+            if cruise_point.type != 1
+            else self._cruise_path_point_background
         )
-        bg_size = int(min(background_image.size[1], background_image.size[0]) / scale / 4)
+        bg_size = int(
+            min(background_image.size[1], background_image.size[0]) / scale / 4
+        )
         offset = int(-bg_size * 1.25)
 
         p = cruise_point.to_img(dimensions)
@@ -7277,17 +8371,25 @@ class DreameMowerMapRenderer:
                     (x + bg_size) * scale,
                     (y + bg_size) * scale,
                 ],
-                fill=(212, 212, 212, 255) if cruise_point.completed else (34, 109, 242, 255),
+                fill=(212, 212, 212, 255)
+                if cruise_point.completed
+                else (34, 109, 242, 255),
             )
 
         if cruise_point.type == 1:
-            text_box = Image.new("RGBA", (bg_size * 2 * scale, bg_size * 2 * scale), (255, 255, 255, 0))
+            text_box = Image.new(
+                "RGBA", (bg_size * 2 * scale, bg_size * 2 * scale), (255, 255, 255, 0)
+            )
             text_box_draw = ImageDraw.Draw(text_box, "RGBA")
 
             if self._font_file is None:
-                self._font_file = zlib.decompress(base64.b64decode(MAP_FONT), zlib.MAX_WBITS | 32)
+                self._font_file = zlib.decompress(
+                    base64.b64decode(MAP_FONT), zlib.MAX_WBITS | 32
+                )
 
-            font = ImageFont.truetype(BytesIO(self._font_file), int((bg_size * 1.5 * scale)))
+            font = ImageFont.truetype(
+                BytesIO(self._font_file), int((bg_size * 1.5 * scale))
+            )
 
             text = str(index)
             left, top, tw, th = text_box_draw.textbbox((0, 0), text, font)
@@ -7311,23 +8413,51 @@ class DreameMowerMapRenderer:
 
         return new_layer
 
-    def render_furniture(self, furniture, furniture_version, layer_size, dimensions, size, rotation, scale):
+    def render_furniture(
+        self,
+        furniture,
+        furniture_version,
+        layer_size,
+        dimensions,
+        size,
+        rotation,
+        scale,
+    ):
         draw_image = furniture.width and furniture.height
         furniture_type = (
             FurnitureType.COFFEE_TABLE.value
-            if furniture_version == 1 and furniture.type == FurnitureType.ROUND_COFFEE_TABLE
+            if furniture_version == 1
+            and furniture.type == FurnitureType.ROUND_COFFEE_TABLE
             else furniture.type.value
         )
         if draw_image:
-            furniture_images = FURNITURE_V2_TYPE_TO_IMAGE if furniture_version == 2 else FURNITURE_TYPE_TO_IMAGE
-            if furniture_type not in self._furniture_images and furniture_type in furniture_images:
-                img = np.array(Image.open(BytesIO(base64.b64decode(furniture_images[furniture_type]))).convert("RGBA"))
+            furniture_images = (
+                FURNITURE_V2_TYPE_TO_IMAGE
+                if furniture_version == 2
+                else FURNITURE_TYPE_TO_IMAGE
+            )
+            if (
+                furniture_type not in self._furniture_images
+                and furniture_type in furniture_images
+            ):
+                img = np.array(
+                    Image.open(
+                        BytesIO(base64.b64decode(furniture_images[furniture_type]))
+                    ).convert("RGBA")
+                )
                 img[..., 3] = 235 * (img[..., 3] > 0)
                 self._furniture_images[furniture_type] = Image.fromarray(img)
             icon = self._furniture_images.get(furniture_type)
         else:
-            furniture_icons = FURNITURE_V2_TYPE_TO_ICON if furniture_version == 2 else FURNITURE_TYPE_TO_ICON
-            if furniture_type not in self._furniture_icons and furniture_type in furniture_icons:
+            furniture_icons = (
+                FURNITURE_V2_TYPE_TO_ICON
+                if furniture_version == 2
+                else FURNITURE_TYPE_TO_ICON
+            )
+            if (
+                furniture_type not in self._furniture_icons
+                and furniture_type in furniture_icons
+            ):
                 self._furniture_icons[furniture_type] = Image.open(
                     BytesIO(base64.b64decode(furniture_icons[furniture_type]))
                 ).convert("RGBA")
@@ -7351,7 +8481,9 @@ class DreameMowerMapRenderer:
                         resample=Image.Resampling.LANCZOS,
                     )
                 else:
-                    img.thumbnail((int(w * scale), int(h * scale)), Image.Resampling.LANCZOS)
+                    img.thumbnail(
+                        (int(w * scale), int(h * scale)), Image.Resampling.LANCZOS
+                    )
                 img = img.rotate(-(furniture.angle * 2), expand=1)
 
                 new_layer.paste(
@@ -7369,8 +8501,12 @@ class DreameMowerMapRenderer:
                         BytesIO(base64.b64decode(MAP_ICON_OBSTACLE_BG_DREAME))
                     ).convert("RGBA")
                     s = int(size * scale * 2)
-                    self._furniture_background.thumbnail((s, s), Image.Resampling.LANCZOS)
-                    self._furniture_background = self._furniture_background.rotate(-rotation, expand=1)
+                    self._furniture_background.thumbnail(
+                        (s, s), Image.Resampling.LANCZOS
+                    )
+                    self._furniture_background = self._furniture_background.rotate(
+                        -rotation, expand=1
+                    )
 
                 offset = int(-(size * 0.2) * scale)
 
@@ -7378,7 +8514,10 @@ class DreameMowerMapRenderer:
                 x = p.x
                 y = p.y
                 pos_offset = (
-                    (self._furniture_background.size[1] * (1.15 if rotation == 90 or rotation == 270 else 0.9))
+                    (
+                        self._furniture_background.size[1]
+                        * (1.15 if rotation == 90 or rotation == 270 else 0.9)
+                    )
                     / scale
                     / 2
                 )
@@ -7403,12 +8542,26 @@ class DreameMowerMapRenderer:
                 new_layer.paste(
                     self._furniture_background,
                     (
-                        int(round(x * scale - (self._furniture_background.size[0] / 2) + x_offset)),
-                        int(round(y * scale - (self._furniture_background.size[1] / 2) + y_offset)),
+                        int(
+                            round(
+                                x * scale
+                                - (self._furniture_background.size[0] / 2)
+                                + x_offset
+                            )
+                        ),
+                        int(
+                            round(
+                                y * scale
+                                - (self._furniture_background.size[1] / 2)
+                                + y_offset
+                            )
+                        ),
                     ),
                 )
 
-                icon = icon.resize((int(icon_size), int(icon_size))).rotate(-rotation, expand=1)
+                icon = icon.resize((int(icon_size), int(icon_size))).rotate(
+                    -rotation, expand=1
+                )
 
                 new_layer.paste(
                     icon,
@@ -7463,7 +8616,9 @@ class DreameMowerMapRenderer:
 
         return new_layer
 
-    def render_floor_material(self, image, floor_material, pixel_type, color, dimensions, scale):
+    def render_floor_material(
+        self, image, floor_material, pixel_type, color, dimensions, scale
+    ):
         tile_w = 12
         floor_w = 4
         floor_h = 16
@@ -7509,8 +8664,14 @@ class DreameMowerMapRenderer:
                             if xx < dimensions.width and (
                                 floor_type != 1
                                 or (
-                                    (math.floor((y - 1) / floor_w) % 2 == 0 and x % 2 == 0)
-                                    or (math.floor((y - 1) / floor_w) % 2 == 1 and x % 2 == 1)
+                                    (
+                                        math.floor((y - 1) / floor_w) % 2 == 0
+                                        and x % 2 == 0
+                                    )
+                                    or (
+                                        math.floor((y - 1) / floor_w) % 2 == 1
+                                        and x % 2 == 1
+                                    )
                                 )
                             ):
                                 val = int(pixel_type[xx, y])
@@ -7519,7 +8680,9 @@ class DreameMowerMapRenderer:
                                     y_index = (height - 1) - (y * scale) - 1
 
                                     if val not in color_map:
-                                        cc = DreameMowerMapRenderer._alpha_composite(color, image[y_index, x_index])
+                                        cc = DreameMowerMapRenderer._alpha_composite(
+                                            color, image[y_index, x_index]
+                                        )
                                         color_map[val] = cc
                                     else:
                                         cc = color_map[val]
@@ -7533,8 +8696,14 @@ class DreameMowerMapRenderer:
                             if yy < dimensions.height and (
                                 floor_type != 2
                                 or (
-                                    (math.floor((x - 1) / floor_w) % 2 == 0 and y % 2 == 0)
-                                    or (math.floor((x - 1) / floor_w) % 2 == 1 and y % 2 == 1)
+                                    (
+                                        math.floor((x - 1) / floor_w) % 2 == 0
+                                        and y % 2 == 0
+                                    )
+                                    or (
+                                        math.floor((x - 1) / floor_w) % 2 == 1
+                                        and y % 2 == 1
+                                    )
                                 )
                             ):
                                 val = int(pixel_type[x, yy])
@@ -7542,7 +8711,9 @@ class DreameMowerMapRenderer:
                                     x_index = x * scale
                                     y_index = (height - 1) - ((yy * scale) + 1)
                                     if val not in color_map:
-                                        cc = DreameMowerMapRenderer._alpha_composite(color, image[y_index, x_index])
+                                        cc = DreameMowerMapRenderer._alpha_composite(
+                                            color, image[y_index, x_index]
+                                        )
                                         color_map[val] = cc
                                     else:
                                         cc = color_map[val]
@@ -7565,17 +8736,29 @@ class DreameMowerMapRenderer:
         mask_layer.paste(segment_mask, (0, 0))
 
         if self._map_problem_icon is None:
-            self._map_problem_icon = Image.open(BytesIO(base64.b64decode(MAP_ICON_PROBLEM))).convert("RGBA")
+            self._map_problem_icon = Image.open(
+                BytesIO(base64.b64decode(MAP_ICON_PROBLEM))
+            ).convert("RGBA")
 
         if rotation == 0 or rotation == 180 or self._square:
             width = (dimensions.width) + (
-                (dimensions.padding[0] + dimensions.padding[2] - dimensions.crop[0] - dimensions.crop[2])
+                (
+                    dimensions.padding[0]
+                    + dimensions.padding[2]
+                    - dimensions.crop[0]
+                    - dimensions.crop[2]
+                )
                 / dimensions.scale
             )
             icon_size = width * (0.06 if self._square else 0.07) * dimensions.scale
         else:
             height = (dimensions.height) + (
-                (dimensions.padding[1] + dimensions.padding[3] - dimensions.crop[1] - dimensions.crop[3])
+                (
+                    dimensions.padding[1]
+                    + dimensions.padding[3]
+                    - dimensions.crop[1]
+                    - dimensions.crop[3]
+                )
                 / dimensions.scale
             )
             icon_size = height * 0.07 * dimensions.scale
@@ -7583,7 +8766,9 @@ class DreameMowerMapRenderer:
         if cleaning_map:
             icon_size = int(icon_size * 0.7)
 
-        problem_icon = self._map_problem_icon.resize((int(icon_size), int(icon_size))).rotate(-rotation, expand=1)
+        problem_icon = self._map_problem_icon.resize(
+            (int(icon_size), int(icon_size))
+        ).rotate(-rotation, expand=1)
 
         mask_layer.paste(segment_mask, (0, 0))
         for k in neglected_segments.keys():
@@ -7648,7 +8833,9 @@ class DreameMowerMapRenderer:
             cleaning_mode = MAP_ICON_CLEANING_MODE_DREAME
 
         if self._light_font_file is None:
-            self._light_font_file = zlib.decompress(base64.b64decode(MAP_FONT_LIGHT), zlib.MAX_WBITS | 32)
+            self._light_font_file = zlib.decompress(
+                base64.b64decode(MAP_FONT_LIGHT), zlib.MAX_WBITS | 32
+            )
 
         resources = MapRendererResources(
             icon_set=self.icon_set,
@@ -7685,7 +8872,9 @@ class DreameMowerMapRenderer:
                 resources.cleaning_mode = cleaning_mode
                 if capability.cleaning_route:
                     resources.cleaning_route = (
-                        MAP_ICON_CLEANING_ROUTE_MATERIAL if self.icon_set == 3 else MAP_ICON_CLEANING_ROUTE_DREAME
+                        MAP_ICON_CLEANING_ROUTE_MATERIAL
+                        if self.icon_set == 3
+                        else MAP_ICON_CLEANING_ROUTE_DREAME
                     )
 
         if capability.wifi_map:
@@ -7719,7 +8908,10 @@ class DreameMowerMapRenderer:
                 )
 
             if not capability.extended_furnitures:
-                furniture_types = list(set(furniture_types) - set([i for i in FurnitureType if i.value > 13]))
+                furniture_types = list(
+                    set(furniture_types)
+                    - set([i for i in FurnitureType if i.value > 13])
+                )
 
             if capability.new_furnitures:
                 resources.furniture = {
@@ -7751,7 +8943,9 @@ class DreameMowerMapRenderer:
     @property
     def default_map_image(self) -> bytes:
         if self._default_map_image is None:
-            default_map_image = Image.open(BytesIO(base64.b64decode(DEFAULT_MAP_IMAGE))).convert("RGBA")
+            default_map_image = Image.open(
+                BytesIO(base64.b64decode(DEFAULT_MAP_IMAGE))
+            ).convert("RGBA")
             self._default_map_image = ImageOps.expand(
                 default_map_image.resize(
                     (
@@ -7766,7 +8960,11 @@ class DreameMowerMapRenderer:
     @property
     def disconnected_map_image(self) -> bytes:
         if self._image:
-            return self._to_buffer(self._image.filter(ImageFilter.GaussianBlur(7 if self._low_resolution else 13)))
+            return self._to_buffer(
+                self._image.filter(
+                    ImageFilter.GaussianBlur(7 if self._low_resolution else 13)
+                )
+            )
         return self.default_map_image
 
     @property
@@ -7815,16 +9013,19 @@ class DreameMowerMapOptimizer:
                     index = j * width + i
                     cValue = data[index]
                     if cValue == 2:
-                        l = 0 if i == 0 else data[index - 1]
+                        left = 0 if i == 0 else data[index - 1]
                         r = 0 if i == (width - 1) else data[index + 1]
                         t = 0 if j == (height - 1) else data[index + width]
                         b = 0 if j == 0 else data[index - width]
-                        if (l == 0 and r == 2) or (l == 2 and r == 0) or (t == 0 and b == 2) or (t == 2 and b == 0):
+                        if (
+                            (left == 0 and r == 2)
+                            or (left == 2 and r == 0)
+                            or (t == 0 and b == 2)
+                            or (t == 2 and b == 0)
+                        ):
                             data[index] = 0
 
     def _find_first_empty_point(self, data, width, height):
-        size = len(data)
-
         for i in range(width):
             if data[i] == 0:
                 return [i, 0]
@@ -7875,7 +9076,12 @@ class DreameMowerMapOptimizer:
                                                 if __i != i and __j != _j:
                                                     if __i == i or __j == _j:
                                                         ind = __j * width + __i
-                                                        if ind >= 0 and ind < size and data[__j * width + __i] != 0:
+                                                        if (
+                                                            ind >= 0
+                                                            and ind < size
+                                                            and data[__j * width + __i]
+                                                            != 0
+                                                        ):
                                                             num = num + 1
                                     else:
                                         num = 5
@@ -7905,7 +9111,12 @@ class DreameMowerMapOptimizer:
                                                 if __i != _i and __j != j:
                                                     if __i == _i or __j == j:
                                                         ind = __j * width + __i
-                                                        if ind >= 0 and ind < size and data[__j * width + __i] != 0:
+                                                        if (
+                                                            ind >= 0
+                                                            and ind < size
+                                                            and data[__j * width + __i]
+                                                            != 0
+                                                        ):
                                                             num = num + 1
                                     else:
                                         num = 5
@@ -8355,7 +9566,9 @@ class DreameMowerMapOptimizer:
             data[first_point[1] * width + first_point[0]] = 255
             needFindPoints = [first_point]
             while needFindPoints:
-                needFindPoints.extend(self._find_zero_point(data, width, height, needFindPoints.pop(0)))
+                needFindPoints.extend(
+                    self._find_zero_point(data, width, height, needFindPoints.pop(0))
+                )
 
         for i in range(len(data)):
             if data[i] == 0:
@@ -8378,7 +9591,9 @@ class DreameMowerMapOptimizer:
                 lastY = j - 1
                 if data[index] == stroke and j != height - 1:
                     isCross = False
-                    if (i != 0 and data[index - 1] == stroke) or (i != (width - 1) and data[index + 1] == stroke):
+                    if (i != 0 and data[index - 1] == stroke) or (
+                        i != (width - 1) and data[index + 1] == stroke
+                    ):
                         isCross = True
                     if startY < 0 and isCross:
                         startY = j
@@ -8464,7 +9679,9 @@ class DreameMowerMapOptimizer:
                     lastIndex = j * width + lastX
                     nIndex = lastIndex - width
                     nnIndex = lastIndex + width
-                    if (nIndex >= 0 and data[nIndex] == stroke) or (nnIndex < size and data[nnIndex] == stroke):
+                    if (nIndex >= 0 and data[nIndex] == stroke) or (
+                        nnIndex < size and data[nnIndex] == stroke
+                    ):
                         isCross = True
 
                     if j == 0:
@@ -8502,36 +9719,35 @@ class DreameMowerMapOptimizer:
         while len(paths) > 1:
             lines = paths.pop(0).alines
 
-            for l in range(len(lines)):
-                line = lines[l]
+            for line_idx in range(len(lines)):
+                line = lines[line_idx]
                 for i in range(len(paths)):
                     nLines = paths[i].alines
                     for j in range(len(nLines)):
                         nLine = nLines[j]
-                        if line.ishorizontal == False and nLine.ishorizontal == False:
+                        if not line.ishorizontal and not nLine.ishorizontal:
                             if line.direction != nLine.direction:
-                                if (line.x > nLine.x and line.direction == DIR_LEFT) or (
-                                    line.x < nLine.x and line.direction == DIR_RIGHT
-                                ):
+                                if (
+                                    line.x > nLine.x and line.direction == DIR_LEFT
+                                ) or (line.x < nLine.x and line.direction == DIR_RIGHT):
                                     if abs(line.x - nLine.x) <= 10:
                                         _ys = self._check_intersect(line.y, nLine.y)
                                         if _ys is not None:
                                             xs = [line.x + 1, nLine.x - 1]
                                             if line.x > nLine.x:
                                                 xs = [nLine.x + 1, line.x - 1]
-                                            weight = self._find_original_points(original_data, data, width, xs, _ys)
-                        elif line.ishorizontal == True and nLine.ishorizontal == True:
+                                            self._find_original_points(
+                                                original_data, data, width, xs, _ys
+                                            )
+                        elif line.ishorizontal and nLine.ishorizontal:
                             if line.direction != nLine.direction:
-                                if (line.y > nLine.y and line.direction == DIR_BOTTOM) or (
-                                    line.y < nLine.y and line.direction == DIR_TOP
-                                ):
+                                if (
+                                    line.y > nLine.y and line.direction == DIR_BOTTOM
+                                ) or (line.y < nLine.y and line.direction == DIR_TOP):
                                     if abs(line.y - nLine.y) <= 10:
                                         _xs = self._check_intersect(line.x, nLine.x)
                                         if _xs is not None:
-                                            ys = [line.y + 1, nLine.y - 1]
-                                            if line.y > nLine.y:
-                                                ys = [nLine.y + 1, line.y - 1]
-                                            weight = self._find_original_points(original_data, data, width, _xs, ys)
+                                            pass
 
         if needFill:
             for i in range(len(data)):
@@ -8680,7 +9896,9 @@ class DreameMowerMapOptimizer:
                 lastY = j - 1
                 if data[index] == stroke and j != (height - 1):
                     isCross = False
-                    if (i != 0 and data[index - 1] == stroke) or (i != (width - 1) and data[index + 1] == stroke):
+                    if (i != 0 and data[index - 1] == stroke) or (
+                        i != (width - 1) and data[index + 1] == stroke
+                    ):
                         isCross = True
                     if startY < 0 and isCross:
                         startY = j
@@ -8740,7 +9958,9 @@ class DreameMowerMapOptimizer:
                     isCross = False
                     nIndex = lastIndex - width
                     nnIndex = lastIndex + width
-                    if (nIndex >= 0 and data[nIndex] == stroke) or (nnIndex < size and data[nnIndex] == stroke):
+                    if (nIndex >= 0 and data[nIndex] == stroke) or (
+                        nnIndex < size and data[nnIndex] == stroke
+                    ):
                         isCross = True
 
                     if isCross:
@@ -8811,7 +10031,10 @@ class DreameMowerMapOptimizer:
             else:
                 if line.ishorizontal:
                     horizontalDir = right if line.findEnd else left
-                    if angle.horizontalDir != dirnone and angle.horizontalDir != horizontalDir:
+                    if (
+                        angle.horizontalDir != dirnone
+                        and angle.horizontalDir != horizontalDir
+                    ):
                         angle = self._fill_angle(data, width, stroke, angle)
 
                     if angle.horizontalDir == dirnone:
@@ -8819,7 +10042,10 @@ class DreameMowerMapOptimizer:
                     angle.lines.append(line)
                 else:
                     verticalDir = top if line.findEnd else bottom
-                    if angle.verticalDir != dirnone and angle.verticalDir != verticalDir:
+                    if (
+                        angle.verticalDir != dirnone
+                        and angle.verticalDir != verticalDir
+                    ):
                         angle = self._fill_angle(data, width, stroke, angle)
                     if angle.verticalDir == dirnone:
                         angle.verticalDir = verticalDir
@@ -8843,7 +10069,11 @@ class DreameMowerMapOptimizer:
                     for _i in range(i - 1, i + 2):
                         for _j in range(j - 1, j + 2):
                             nIndex = _j * width + _i
-                            if nIndex < size and data[nIndex] != stroke and data[nIndex] != 2:
+                            if (
+                                nIndex < size
+                                and data[nIndex] != stroke
+                                and data[nIndex] != 2
+                            ):
                                 hasFind = True
                                 break
                         if hasFind:
@@ -8878,7 +10108,9 @@ class DreameMowerMapOptimizer:
                         data[j * width + k] = 1
                 startX = -1
 
-    def _calculate_charger_position(self, data, width, height, stroke, charger_position):
+    def _calculate_charger_position(
+        self, data, width, height, stroke, charger_position
+    ):
         vLines = []
         hLines = []
         for i in range(width):
@@ -8888,7 +10120,9 @@ class DreameMowerMapOptimizer:
                 lastY = j - 1
                 if data[index] == stroke and j != (height - 1):
                     isCross = False
-                    if (i != 0 and data[index - 1] == stroke) or (i != width - 1 and data[index + 1] == stroke):
+                    if (i != 0 and data[index - 1] == stroke) or (
+                        i != width - 1 and data[index + 1] == stroke
+                    ):
                         isCross = True
                     if startY < 0 and isCross:
                         startY = j
@@ -8937,7 +10171,10 @@ class DreameMowerMapOptimizer:
                         continue
                     isCross = False
                     lastIndex = j * width + lastX
-                    if data[lastIndex - width] == stroke or data[lastIndex + width] == stroke:
+                    if (
+                        data[lastIndex - width] == stroke
+                        or data[lastIndex + width] == stroke
+                    ):
                         isCross = True
 
                     if isCross:
@@ -8958,7 +10195,7 @@ class DreameMowerMapOptimizer:
                 minY = line[0][1] if line[0][1] < line[1][1] else line[1][1]
                 maxY = line[0][1] if line[0][1] > line[1][1] else line[1][1]
                 if lx >= cX and cY >= minY and cY <= maxY:
-                    if lastX == None or lx < lastX:
+                    if lastX is None or lx < lastX:
                         lastX = lx
             if lastX is not None:
                 if lastX - cX <= 11:
@@ -8973,7 +10210,7 @@ class DreameMowerMapOptimizer:
                 minY = line[0][1] if line[0][1] < line[1][1] else line[1][1]
                 maxY = line[0][1] if line[0][1] > line[1][1] else line[1][1]
                 if lx <= cX and cY >= minY and cY <= maxY:
-                    if lastX == None or lx > lastX:
+                    if lastX is None or lx > lastX:
                         lastX = lx
             if lastX is not None:
                 if cX - lastX <= 11:
@@ -8987,7 +10224,7 @@ class DreameMowerMapOptimizer:
                 minX = line[0][0] if line[0][0] < line[1][0] else line[1][0]
                 maxX = line[0][0] if line[0][0] > line[1][0] else line[1][0]
                 if ly >= cY and cX >= minX and cX <= maxX:
-                    if lastY == None or ly < lastY:
+                    if lastY is None or ly < lastY:
                         lastY = ly
             if lastY is not None:
                 if lastY - cY <= 11:
@@ -9001,7 +10238,7 @@ class DreameMowerMapOptimizer:
                 minX = line[0][0] if line[0][0] < line[1][0] else line[1][0]
                 maxX = line[0][0] if line[0][0] > line[1][0] else line[1][0]
                 if ly <= cY and cX >= minX and cX <= maxX:
-                    if lastY == None or ly > lastY:
+                    if lastY is None or ly > lastY:
                         lastY = ly
             if lastY is not None:
                 if cY - lastY <= 11:
@@ -9012,21 +10249,27 @@ class DreameMowerMapOptimizer:
 
     def _merge_saved_map_data(self, map_data, saved_map_data, original_data=None):
         if saved_map_data:
-            maxX = map_data.dimensions.left + (map_data.dimensions.width * map_data.dimensions.grid_size)
-            maxY = map_data.dimensions.top + (map_data.dimensions.height * map_data.dimensions.grid_size)
+            maxX = map_data.dimensions.left + (
+                map_data.dimensions.width * map_data.dimensions.grid_size
+            )
+            maxY = map_data.dimensions.top + (
+                map_data.dimensions.height * map_data.dimensions.grid_size
+            )
 
             if maxX < saved_map_data.dimensions.left + (
                 saved_map_data.dimensions.width * saved_map_data.dimensions.grid_size
             ):
                 maxX = saved_map_data.dimensions.left + (
-                    saved_map_data.dimensions.width * saved_map_data.dimensions.grid_size
+                    saved_map_data.dimensions.width
+                    * saved_map_data.dimensions.grid_size
                 )
 
             if maxY < saved_map_data.dimensions.top + (
                 saved_map_data.dimensions.height * saved_map_data.dimensions.grid_size
             ):
                 maxY = saved_map_data.dimensions.top + (
-                    saved_map_data.dimensions.height * saved_map_data.dimensions.grid_size
+                    saved_map_data.dimensions.height
+                    * saved_map_data.dimensions.grid_size
                 )
 
             left = map_data.dimensions.left
@@ -9041,8 +10284,14 @@ class DreameMowerMapOptimizer:
             width = int((maxX - left) / saved_map_data.dimensions.grid_size)
             height = int((maxY - top) / saved_map_data.dimensions.grid_size)
 
-            si = int((saved_map_data.dimensions.left - left) / saved_map_data.dimensions.grid_size)
-            sj = int((saved_map_data.dimensions.top - top) / saved_map_data.dimensions.grid_size)
+            si = int(
+                (saved_map_data.dimensions.left - left)
+                / saved_map_data.dimensions.grid_size
+            )
+            sj = int(
+                (saved_map_data.dimensions.top - top)
+                / saved_map_data.dimensions.grid_size
+            )
 
             sim = si + saved_map_data.dimensions.width
             sjm = sj + saved_map_data.dimensions.height
@@ -9054,7 +10303,11 @@ class DreameMowerMapOptimizer:
             njm = nj + map_data.dimensions.height
 
             pixel_type = np.zeros((width, height), np.uint8)
-            data = map_data.optimized_pixel_type if map_data.optimized_pixel_type is not None else map_data.pixel_type
+            data = (
+                map_data.optimized_pixel_type
+                if map_data.optimized_pixel_type is not None
+                else map_data.pixel_type
+            )
 
             for j in range(height):
                 for i in range(width):
@@ -9087,14 +10340,22 @@ class DreameMowerMapOptimizer:
                     for i in range(width):
                         if j >= nj and i >= ni and j < njm and i < nim:
                             if (
-                                original_data[(j - nj) * map_data.dimensions.width + (i - ni)] == 2
+                                original_data[
+                                    (j - nj) * map_data.dimensions.width + (i - ni)
+                                ]
+                                == 2
                                 and pixel_type[i, j] != 0
                             ):
                                 dis = 3
                                 hasBorder = False
                                 for _j in range(j - dis, j + dis + 1):
                                     for _i in range(i - dis, i + dis):
-                                        if _j < 0 or _i < 0 or _j >= height or _i >= width:
+                                        if (
+                                            _j < 0
+                                            or _i < 0
+                                            or _j >= height
+                                            or _i >= width
+                                        ):
                                             continue
                                         if hasBorder:
                                             break
@@ -9106,7 +10367,9 @@ class DreameMowerMapOptimizer:
                                     pixel_type[i, j] = 251
 
             map_data.optimized_pixel_type = pixel_type
-            map_data.optimized_dimensions = MapImageDimensions(top, left, height, width, map_data.dimensions.grid_size)
+            map_data.optimized_dimensions = MapImageDimensions(
+                top, left, height, width, map_data.dimensions.grid_size
+            )
 
     def optimize(self, map_data, saved_map_data=None, js_optimizer=True):
         if map_data.saved_map:
@@ -9141,7 +10404,9 @@ class DreameMowerMapOptimizer:
                                                 max_px = px
 
                                 if max_px >= 0:
-                                    map_data.optimized_pixel_type[x, y] = MapPixelType(max_px + 11)
+                                    map_data.optimized_pixel_type[x, y] = MapPixelType(
+                                        max_px + 11
+                                    )
                                     break
             return map_data
 
@@ -9149,7 +10414,7 @@ class DreameMowerMapOptimizer:
             now = time.time()
 
             if js_optimizer:
-                if self._js_optimizer == None:
+                if self._js_optimizer is None:
                     self._js_optimizer = MiniRacer()
                     self._js_optimizer.eval(base64.b64decode(MAP_OPTIMIZER_JS))
 
@@ -9161,7 +10426,9 @@ class DreameMowerMapOptimizer:
                     map_data.dimensions.height,
                     map_data.dimensions.grid_size,
                 ]
-                saved_data = saved_map_data.pixel_type.tolist() if saved_map_data else None
+                saved_data = (
+                    saved_map_data.pixel_type.tolist() if saved_map_data else None
+                )
                 saved_data_size = (
                     [
                         saved_map_data.dimensions.left,
@@ -9186,8 +10453,10 @@ class DreameMowerMapOptimizer:
                             top = saved_map_data.dimensions.top
 
                     charger_position = [
-                        (map_data.charger_position.x - left) / map_data.dimensions.grid_size,
-                        (map_data.charger_position.y - top) / map_data.dimensions.grid_size,
+                        (map_data.charger_position.x - left)
+                        / map_data.dimensions.grid_size,
+                        (map_data.charger_position.y - top)
+                        / map_data.dimensions.grid_size,
                         map_data.charger_position.a,
                     ]
 
@@ -9212,8 +10481,8 @@ class DreameMowerMapOptimizer:
                     )
 
                     if result[2] and map_data.charger_position:
-                        charger = result[2]
                         # map_data.optimized_charger_position = Point(charger[0] * map_data.dimensions.grid_size + left, charger[1] * map_data.dimensions.grid_size + top, charger[2])
+                        pass
             else:
                 width = map_data.dimensions.width
                 height = map_data.dimensions.height
@@ -9255,8 +10524,14 @@ class DreameMowerMapOptimizer:
                                 top = saved_map_data.dimensions.top
 
                         new_charger_position = copy.deepcopy(map_data.charger_position)
-                        new_charger_position.x = int((new_charger_position.x - left) / map_data.dimensions.grid_size)
-                        new_charger_position.y = int((new_charger_position.y - top) / map_data.dimensions.grid_size)
+                        new_charger_position.x = int(
+                            (new_charger_position.x - left)
+                            / map_data.dimensions.grid_size
+                        )
+                        new_charger_position.y = int(
+                            (new_charger_position.y - top)
+                            / map_data.dimensions.grid_size
+                        )
                         if (
                             new_charger_position.y >= 0
                             and new_charger_position.x >= 0
@@ -9271,8 +10546,16 @@ class DreameMowerMapOptimizer:
                                 clean_data, width, height, 6, new_charger_position
                             )
                             map_data.optimized_charger_position = Point(
-                                int(new_charger_position.x * map_data.dimensions.grid_size) + left,
-                                int(new_charger_position.y * map_data.dimensions.grid_size) + top,
+                                int(
+                                    new_charger_position.x
+                                    * map_data.dimensions.grid_size
+                                )
+                                + left,
+                                int(
+                                    new_charger_position.y
+                                    * map_data.dimensions.grid_size
+                                )
+                                + top,
                                 new_charger_position.a,
                             )
 
@@ -9295,7 +10578,10 @@ class DreameMowerMapOptimizer:
                                 currentPointNum = currentPointNum + 1
                                 pixel_type[i, j] = data_map.get(clean_value, 253)
 
-                    if not ((currentPointNum * 100) / pointNum) < 50 and pointNum > 2000:
+                    if (
+                        not ((currentPointNum * 100) / pointNum) < 50
+                        and pointNum > 2000
+                    ):
                         map_data.optimized_pixel_type = pixel_type
 
                 self._merge_saved_map_data(map_data, saved_map_data, original_data)

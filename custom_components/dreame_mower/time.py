@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Support for Dreame Mower times."""
 
 from __future__ import annotations
@@ -24,7 +25,9 @@ from .entity import DreameMowerEntity, DreameMowerEntityDescription
 
 
 @dataclass
-class DreameMowerTimeEntityDescription(DreameMowerEntityDescription, TimeEntityDescription):
+class DreameMowerTimeEntityDescription(
+    DreameMowerEntityDescription, TimeEntityDescription
+):
     """Describes Dreame Mower Time entity."""
 
     set_fn: Callable[[object, int]] = None
@@ -85,7 +88,9 @@ class DreameMowerTimeEntity(DreameMowerEntity, TimeEntity):
         description: DreameMowerTimeEntityDescription,
     ) -> None:
         """Initialize Dreame Mower time."""
-        if description.set_fn is None and (description.property_key is not None or description.key is not None):
+        if description.set_fn is None and (
+            description.property_key is not None or description.key is not None
+        ):
             if description.property_key is not None:
                 prop = f"set_{description.property_key.name.lower()}"
             else:
@@ -122,7 +127,9 @@ class DreameMowerTimeEntity(DreameMowerEntity, TimeEntity):
 
         value = str(value)[0:-3]
         if self.entity_description.set_fn is not None:
-            await self._try_command("Unable to call: %s", self.entity_description.set_fn, self.device, value)
+            await self._try_command(
+                "Unable to call: %s", self.entity_description.set_fn, self.device, value
+            )
         elif self.entity_description.property_key is not None:
             await self._try_command(
                 "Unable to call: %s",

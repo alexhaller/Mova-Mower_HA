@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ruff check *)",
+      "Bash(ruff format *)",
+      "Bash(mypy custom_components/)",
+      "Bash(pip-audit *)",
+      "Bash(gh api *)",
+      "Bash(git commit -m ' *)",
+      "WebFetch(domain:developers.home-assistant.io)",
+      "WebFetch(domain:hacs.xyz)",
+      "PowerShell(Get-Item *)",
+      "PowerShell(Get-ChildItem *)",
+      "PowerShell(Test-Path *)"
+    ]
+  }
+}

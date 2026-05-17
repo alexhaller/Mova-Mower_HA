@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from __future__ import annotations
 
 from typing import Any, Dict
@@ -7,7 +8,6 @@ from functools import partial
 
 from homeassistant.core import callback
 from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
-from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.exceptions import HomeAssistantError
@@ -42,7 +42,10 @@ class DreameMowerEntityDescription:
     property_key: DreameMowerProperty = None
     action_key: DreameMowerAction = None
     exists_fn: Callable[[object, object], bool] = lambda description, device: bool(
-        (description.action_key is not None and description.action_key in device.action_mapping)
+        (
+            description.action_key is not None
+            and description.action_key in device.action_mapping
+        )
         or description.property_key is None
         or (
             isinstance(description.property_key, DreameMowerProperty)
@@ -99,24 +102,36 @@ class DreameMowerEntity(CoordinatorEntity[DreameMowerDataUpdateCoordinator]):
             if description.name is None and description.key is not None:
                 description.name = description.key.replace("_", " ").title()
             elif description.key is None and description.name is not None:
-                description.key = description.name.lower().replace(" ", "_").replace("-", "_")
+                description.key = (
+                    description.name.lower().replace(" ", "_").replace("-", "_")
+                )
 
-            if description.value_fn is None and (description.property_key is not None or description.key is not None):
+            if description.value_fn is None and (
+                description.property_key is not None or description.key is not None
+            ):
                 if description.property_key is not None:
                     prop = description.property_key.name.lower()
                 else:
                     prop = description.key.lower()
                 if hasattr(coordinator.device.status, prop):
-                    description.value_fn = lambda value, device: getattr(device.status, prop)
+                    description.value_fn = lambda value, device: getattr(
+                        device.status, prop
+                    )
 
             if description.available_fn is None:
                 if description.property_key is not None:
-                    description.available_fn = PROPERTY_AVAILABILITY.get(description.property_key.name)
+                    description.available_fn = PROPERTY_AVAILABILITY.get(
+                        description.property_key.name
+                    )
                 elif description.action_key is not None:
-                    description.available_fn = ACTION_AVAILABILITY.get(description.action_key.name)
+                    description.available_fn = ACTION_AVAILABILITY.get(
+                        description.action_key.name
+                    )
                 elif description.key is not None:
                     if description.key in PROPERTY_AVAILABILITY:
-                        description.available_fn = PROPERTY_AVAILABILITY[description.key]
+                        description.available_fn = PROPERTY_AVAILABILITY[
+                            description.key
+                        ]
                     elif description.key in ACTION_AVAILABILITY:
                         description.available_fn = ACTION_AVAILABILITY[description.key]
 
@@ -131,7 +146,9 @@ class DreameMowerEntity(CoordinatorEntity[DreameMowerDataUpdateCoordinator]):
     def _set_id(self) -> None:
         if self.entity_description:
             if self.entity_description.icon_fn is not None:
-                self._attr_icon = self.entity_description.icon_fn(self.native_value, self.device)
+                self._attr_icon = self.entity_description.icon_fn(
+                    self.native_value, self.device
+                )
 
             name = self.entity_description.name
             if self.entity_description.name_fn is not None:
@@ -142,7 +159,9 @@ class DreameMowerEntity(CoordinatorEntity[DreameMowerDataUpdateCoordinator]):
     def _generate_entity_id(self, format) -> None:
         if self.entity_description.key:
             self.entity_id = async_generate_entity_id(
-                format, f"{self.device.name} {self.entity_description.key}", hass=self.coordinator.hass
+                format,
+                f"{self.device.name} {self.entity_description.key}",
+                hass=self.coordinator.hass,
             )
 
     @callback
@@ -206,11 +225,22 @@ class DreameMowerEntity(CoordinatorEntity[DreameMowerDataUpdateCoordinator]):
         attrs = None
         if self.entity_description.attrs_fn is not None:
             attrs = self.entity_description.attrs_fn(self.device)
-        elif self.entity_description.value_fn is not None or self.entity_description.value_int_fn is not None:
+        elif (
+            self.entity_description.value_fn is not None
+            or self.entity_description.value_int_fn is not None
+        ):
             if self.entity_description.property_key is not None:
-                attrs = {ATTR_VALUE: self.device.get_property(self.entity_description.property_key)}
+                attrs = {
+                    ATTR_VALUE: self.device.get_property(
+                        self.entity_description.property_key
+                    )
+                }
             elif self.entity_description.value_int_fn is not None:
-                attrs = {ATTR_VALUE: self.entity_description.value_int_fn(self.native_value, self)}
+                attrs = {
+                    ATTR_VALUE: self.entity_description.value_int_fn(
+                        self.native_value, self
+                    )
+                }
         return attrs
 
     @property

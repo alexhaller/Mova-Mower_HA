@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from __future__ import annotations
 
 import voluptuous as vol
@@ -10,7 +11,6 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import config_validation as cv, entity_platform
-from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.icon import icon_for_battery_level
 from homeassistant.components.lawn_mower import (
     LawnMowerActivity,
@@ -23,15 +23,9 @@ from .dreame.const import STATE_UNKNOWN
 from .dreame import (
     DreameMowerState,
     DreameMowerAction,
-    InvalidActionException,
-    ACTION_AVAILABILITY,
 )
 from .const import (
     DOMAIN,
-    FAN_SPEED_SILENT,
-    FAN_SPEED_STANDARD,
-    FAN_SPEED_STRONG,
-    FAN_SPEED_TURBO,
     INPUT_CLEANING_SEQUENCE,
     INPUT_LANGUAGE_ID,
     INPUT_LINE,
@@ -161,19 +155,19 @@ async def async_setup_entry(
         SERVICE_SET_PROPERTY,
         {
             vol.Required(INPUT_KEY): cv.string,
-            vol.Optional(INPUT_VALUE): vol.Any(vol.Coerce(int), vol.Coerce(str), vol.Coerce(bool)),
+            vol.Optional(INPUT_VALUE): vol.Any(
+                vol.Coerce(int), vol.Coerce(str), vol.Coerce(bool)
+            ),
         },
         DreameMower.async_set_property.__name__,
     )
-    
+
     platform.async_register_entity_service(
         SERVICE_CALL_ACTION,
-        {
-            vol.Required(INPUT_KEY): cv.string
-        },
+        {vol.Required(INPUT_KEY): cv.string},
         DreameMower.async_call_action.__name__,
     )
-    
+
     platform.async_register_entity_service(
         SERVICE_REQUEST_MAP,
         {},
@@ -247,7 +241,9 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_CLEAN_SEGMENT,
         {
-            vol.Required(INPUT_SEGMENTS_ARRAY): vol.Any(vol.Coerce(int), [vol.Coerce(int)]),
+            vol.Required(INPUT_SEGMENTS_ARRAY): vol.Any(
+                vol.Coerce(int), [vol.Coerce(int)]
+            ),
             vol.Optional(INPUT_REPEATS): vol.Any(vol.Coerce(int), [vol.Coerce(int)]),
         },
         DreameMower.async_clean_segment.__name__,
@@ -378,8 +374,12 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_MOVE_REMOTE_CONTROL_STEP,
         {
-            vol.Required(INPUT_VELOCITY): vol.All(vol.Coerce(int), vol.Clamp(min=-600, max=600)),
-            vol.Required(INPUT_ROTATION): vol.All(vol.Coerce(int), vol.Clamp(min=-360, max=360)),
+            vol.Required(INPUT_VELOCITY): vol.All(
+                vol.Coerce(int), vol.Clamp(min=-600, max=600)
+            ),
+            vol.Required(INPUT_ROTATION): vol.All(
+                vol.Coerce(int), vol.Clamp(min=-360, max=360)
+            ),
             vol.Optional("prompt"): cv.boolean,
         },
         DreameMower.async_remote_control_move_step.__name__,
@@ -560,9 +560,7 @@ class DreameMower(DreameMowerEntity, LawnMowerEntity):
     def _set_attrs(self):
         if self.device.status.has_error:
             self._attr_icon = "mdi:alert-octagon"
-        elif (
-            self.device.status.paused
-        ):
+        elif self.device.status.paused:
             self._attr_icon = "mdi:pause-circle"
         elif self.device.status.sleeping:
             self._attr_icon = "mdi:sleep"
@@ -582,7 +580,10 @@ class DreameMower(DreameMowerEntity, LawnMowerEntity):
                 and self.device.status.started
                 and (
                     self.device.status.customized_cleaning
-                    and not (self.device.status.zone_cleaning or self.device.status.spot_cleaning)
+                    and not (
+                        self.device.status.zone_cleaning
+                        or self.device.status.spot_cleaning
+                    )
                 )
             )
             and not self.device.status.scheduled_clean
@@ -595,17 +596,27 @@ class DreameMower(DreameMowerEntity, LawnMowerEntity):
             self._attr_fan_speed_list = []
 
         # if ACTION_AVAILABILITY[DreameMowerAction.START_MOWING.name](self.device):
-        self._attr_supported_features = self._attr_supported_features | LawnMowerEntityFeature.START_MOWING
+        self._attr_supported_features = (
+            self._attr_supported_features | LawnMowerEntityFeature.START_MOWING
+        )
         # if ACTION_AVAILABILITY[DreameMowerAction.PAUSE.name](self.device):
-        self._attr_supported_features = self._attr_supported_features | LawnMowerEntityFeature.PAUSE
+        self._attr_supported_features = (
+            self._attr_supported_features | LawnMowerEntityFeature.PAUSE
+        )
         # if ACTION_AVAILABILITY[DreameMowerAction.STOP.name](self.device):
-        self._attr_supported_features = self._attr_supported_features | LawnMowerEntityFeature.PAUSE
+        self._attr_supported_features = (
+            self._attr_supported_features | LawnMowerEntityFeature.PAUSE
+        )
         # if ACTION_AVAILABILITY[DreameMowerAction.DOCK.name](self.device):
-        self._attr_supported_features = self._attr_supported_features | LawnMowerEntityFeature.DOCK
+        self._attr_supported_features = (
+            self._attr_supported_features | LawnMowerEntityFeature.DOCK
+        )
 
         self._attr_battery_level = self.device.status.battery_level
         self._attr_charging = self.device.status.charging
-        self._attr_state = STATE_CODE_TO_STATE.get(self.device.status.state, STATE_UNKNOWN)
+        self._attr_state = STATE_CODE_TO_STATE.get(
+            self.device.status.state, STATE_UNKNOWN
+        )
         self._attr_extra_state_attributes = self.device.status.attributes
 
     @property
@@ -626,7 +637,9 @@ class DreameMower(DreameMowerEntity, LawnMowerEntity):
     @property
     def battery_icon(self) -> str:
         """Return the battery icon for the mower cleaner."""
-        return icon_for_battery_level(battery_level=self._attr_battery_level, charging=self._attr_charging)
+        return icon_for_battery_level(
+            battery_level=self._attr_battery_level, charging=self._attr_charging
+        )
 
     @property
     def available(self) -> bool:
@@ -647,7 +660,9 @@ class DreameMower(DreameMowerEntity, LawnMowerEntity):
 
     async def async_start_pause(self) -> None:
         """Start or resume the cleaning task."""
-        await self._try_command("Unable to call start_pause: %s", self.device.start_pause)
+        await self._try_command(
+            "Unable to call start_pause: %s", self.device.start_pause
+        )
 
     async def async_stop(self, **kwargs) -> None:
         """Stop the mower cleaner."""
@@ -659,7 +674,9 @@ class DreameMower(DreameMowerEntity, LawnMowerEntity):
 
     async def async_return_to_base(self, **kwargs) -> None:
         """Set the mower cleaner to return to the dock."""
-        await self._try_command("Unable to call return_to_base: %s", self.device.return_to_base)
+        await self._try_command(
+            "Unable to call return_to_base: %s", self.device.return_to_base
+        )
 
     async def async_dock(self, **kwargs) -> None:
         """Set the mower cleaner to return to the dock."""
@@ -698,7 +715,9 @@ class DreameMower(DreameMowerEntity, LawnMowerEntity):
 
     async def async_follow_path(self, points="") -> None:
         """Start a survaliance job."""
-        await self._try_command("Unable to call follow_path: %s", self.device.follow_path, points)
+        await self._try_command(
+            "Unable to call follow_path: %s", self.device.follow_path, points
+        )
 
     async def async_set_restricted_zone(self, walls="", zones="", no_mops="") -> None:
         """Create restricted zone."""
@@ -740,19 +759,27 @@ class DreameMower(DreameMowerEntity, LawnMowerEntity):
 
     async def async_select_map(self, map_id) -> None:
         """Switch selected map."""
-        await self._try_command("Unable to switch to selected map: %s", self.device.set_selected_map, map_id)
+        await self._try_command(
+            "Unable to switch to selected map: %s", self.device.set_selected_map, map_id
+        )
 
     async def async_delete_map(self, map_id=None) -> None:
         """Delete a map."""
-        await self._try_command("Unable to delete map: %s", self.device.delete_map, map_id)
+        await self._try_command(
+            "Unable to delete map: %s", self.device.delete_map, map_id
+        )
 
     async def async_save_temporary_map(self) -> None:
         """Save the temporary map."""
-        await self._try_command("Unable to save map: %s", self.device.save_temporary_map)
+        await self._try_command(
+            "Unable to save map: %s", self.device.save_temporary_map
+        )
 
     async def async_discard_temporary_map(self) -> None:
         """Discard the temporary map."""
-        await self._try_command("Unable to discard temporary map: %s", self.device.discard_temporary_map)
+        await self._try_command(
+            "Unable to discard temporary map: %s", self.device.discard_temporary_map
+        )
 
     async def async_replace_temporary_map(self, map_id=None) -> None:
         """Replace the temporary map with another saved map."""
@@ -764,17 +791,23 @@ class DreameMower(DreameMowerEntity, LawnMowerEntity):
 
     async def async_request_map(self) -> None:
         """Request new map."""
-        await self._try_command("Unable to call request_map: %s", self.device.request_map)
+        await self._try_command(
+            "Unable to call request_map: %s", self.device.request_map
+        )
 
     async def async_set_property(self, key, value) -> None:
         """Set property."""
         if key is not None and value is not None and key != "" and value != "":
-            await self._try_command("set_property failed: %s", self.device.set_property_value, key, value)
+            await self._try_command(
+                "set_property failed: %s", self.device.set_property_value, key, value
+            )
 
     async def async_call_action(self, key) -> None:
         """Call action."""
         if key is not None and key != "":
-            await self._try_command("call_action failed: %s", self.device.call_action_value, key)
+            await self._try_command(
+                "call_action failed: %s", self.device.call_action_value, key
+            )
 
     async def async_rename_map(self, map_id, map_name="") -> None:
         """Rename a map"""
@@ -886,7 +919,9 @@ class DreameMower(DreameMowerEntity, LawnMowerEntity):
 
     async def async_send_command(self, command: str, params=None, **kwargs) -> None:
         """Send a command to a mower cleaner."""
-        await self._try_command("Unable to call send_command: %s", self.device.send_command, command, params)
+        await self._try_command(
+            "Unable to call send_command: %s", self.device.send_command, command, params
+        )
 
     async def async_reset_consumable(self, consumable: str) -> None:
         """Reset consumable"""

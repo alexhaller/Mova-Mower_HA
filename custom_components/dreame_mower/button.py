@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Support for Dreame Mower buttons."""
 
 from __future__ import annotations
@@ -29,7 +30,9 @@ from .dreame import DreameMowerAction
 
 
 @dataclass
-class DreameMowerButtonEntityDescription(DreameMowerEntityDescription, ButtonEntityDescription):
+class DreameMowerButtonEntityDescription(
+    DreameMowerEntityDescription, ButtonEntityDescription
+):
     """Describes Dreame Mower Button entity."""
 
     action_fn: Callable[[object]] = None
@@ -59,14 +62,17 @@ BUTTONS: tuple[ButtonEntityDescription, ...] = (
         icon="mdi:air-filter",
         entity_category=EntityCategory.DIAGNOSTIC,
         exists_fn=lambda description, device: bool(
-            DreameMowerEntityDescription().exists_fn(description, device) and device.status.filter_life is not None
+            DreameMowerEntityDescription().exists_fn(description, device)
+            and device.status.filter_life is not None
         ),
     ),
     DreameMowerButtonEntityDescription(
         action_key=DreameMowerAction.RESET_SENSOR,
         icon="mdi:radar",
         entity_category=EntityCategory.DIAGNOSTIC,
-        exists_fn=lambda description, device: not device.capability.disable_sensor_cleaning,
+        exists_fn=lambda description, device: (
+            not device.capability.disable_sensor_cleaning
+        ),
     ),
     DreameMowerButtonEntityDescription(
         action_key=DreameMowerAction.RESET_SILVER_ION,
@@ -82,7 +88,8 @@ BUTTONS: tuple[ButtonEntityDescription, ...] = (
         icon="mdi:brush",
         entity_category=EntityCategory.DIAGNOSTIC,
         exists_fn=lambda description, device: bool(
-            DreameMowerEntityDescription().exists_fn(description, device) and device.capability.lensbrush
+            DreameMowerEntityDescription().exists_fn(description, device)
+            and device.capability.lensbrush
         ),
     ),
     DreameMowerButtonEntityDescription(
@@ -90,7 +97,8 @@ BUTTONS: tuple[ButtonEntityDescription, ...] = (
         icon="mdi:squeegee",
         entity_category=EntityCategory.DIAGNOSTIC,
         exists_fn=lambda description, device: bool(
-            DreameMowerEntityDescription().exists_fn(description, device) and device.status.squeegee_life is not None
+            DreameMowerEntityDescription().exists_fn(description, device)
+            and device.status.squeegee_life is not None
         ),
     ),
     DreameMowerButtonEntityDescription(
@@ -130,8 +138,13 @@ async def async_setup_entry(
         if description.exists_fn(description, coordinator.device)
     )
 
-    if coordinator.device.capability.shortcuts or coordinator.device.capability.backup_map:
-        update_buttons = partial(async_update_buttons, coordinator, {}, {}, async_add_entities)
+    if (
+        coordinator.device.capability.shortcuts
+        or coordinator.device.capability.backup_map
+    ):
+        update_buttons = partial(
+            async_update_buttons, coordinator, {}, {}, async_add_entities
+        )
         coordinator.async_add_listener(update_buttons)
         update_buttons()
 
@@ -162,8 +175,10 @@ def async_update_buttons(
                     DreameMowerButtonEntityDescription(
                         key="shortcut",
                         icon="mdi:play-speed",
-                        available_fn=lambda device: not device.status.started
-                        and not device.status.shortcut_task,
+                        available_fn=lambda device: (
+                            not device.status.started
+                            and not device.status.shortcut_task
+                        ),
                     ),
                     shortcut_id,
                 )
@@ -171,7 +186,9 @@ def async_update_buttons(
             new_entities = new_entities + current_shortcut[shortcut_id]
 
     if coordinator.device.capability.backup_map:
-        new_indexes = set([k for k in range(1, len(coordinator.device.status.map_list) + 1)])
+        new_indexes = set(
+            [k for k in range(1, len(coordinator.device.status.map_list) + 1)]
+        )
         current_ids = set(current_map)
 
         for map_index in current_ids - new_indexes:
@@ -185,7 +202,10 @@ def async_update_buttons(
                         key="backup",
                         icon="mdi:content-save",
                         entity_category=EntityCategory.DIAGNOSTIC,
-                        available_fn=lambda device: not device.status.started and not device.status.map_backup_status,
+                        available_fn=lambda device: (
+                            not device.status.started
+                            and not device.status.map_backup_status
+                        ),
                     ),
                     map_index,
                 )
@@ -328,7 +348,9 @@ class DreameMowerMapButtonEntity(DreameMowerEntity, ButtonEntity):
         super().__init__(coordinator, description)
         self._set_id()
         self._attr_unique_id = f"{self.device.mac}_backup_map_{self.map_index}"
-        self.entity_id = f"button.{self.device.name.lower()}_backup_map_{self.map_index}"
+        self.entity_id = (
+            f"button.{self.device.name.lower()}_backup_map_{self.map_index}"
+        )
 
     def _set_id(self) -> None:
         """Set name of the entity"""

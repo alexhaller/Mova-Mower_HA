@@ -1,0 +1,64 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  hassfest:
+    name: Hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install ruff mypy pip-audit
+          pip install -r requirements_dev.txt 2>/dev/null || true
+
+      - name: Ruff lint
+        run: ruff check .
+
+      - name: Ruff format
+        run: ruff format --check .
+
+      - name: Mypy
+        run: |
+          mypy custom_components/ \
+            --ignore-missing-imports \
+            --exclude custom_components/dreame_mower/dreame/
+
+      - name: pip-audit
+        run: |
+          python -c "
+          import json
+          reqs = json.load(open('custom_components/dreame_mower/manifest.json'))['requirements']
+          open('_reqs_tmp.txt', 'w').write('\n'.join(reqs))
+          "
+          pip-audit -r _reqs_tmp.txt
+          rm _reqs_tmp.txt

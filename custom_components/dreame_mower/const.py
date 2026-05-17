@@ -160,19 +160,13 @@ NOTIFICATION_ID_REPLACE_TEMPORARY_MAP: Final = "replace_temporary_map"
 NOTIFICATION_ID_2FA_LOGIN: Final = "2fa_login"
 
 NOTIFICATION_CLEANUP_COMPLETED: Final = "### Cleanup completed"
-NOTIFICATION_RESUME_CLEANING: Final = (
-    "### Resume Cleaning Mode\nThe robot will automatically resume unfinished cleaning tasks after charging its battery to 80%."
+NOTIFICATION_RESUME_CLEANING: Final = "### Resume Cleaning Mode\nThe robot will automatically resume unfinished cleaning tasks after charging its battery to 80%."
+NOTIFICATION_RESUME_CLEANING_NOT_PERFORMED: Final = "### The robot is in the DND period\nRobot will resume cleaning after the DND period ends."
+NOTIFICATION_REPLACE_MAP: Final = (
+    "### A new map has been generated\nYou need to save or discard map before using it."
 )
-NOTIFICATION_RESUME_CLEANING_NOT_PERFORMED: Final = (
-    "### The robot is in the DND period\nRobot will resume cleaning after the DND period ends."
-)
-NOTIFICATION_REPLACE_MAP: Final = "### A new map has been generated\nYou need to save or discard map before using it."
-NOTIFICATION_REPLACE_MULTI_MAP: Final = (
-    "### A new map has been generated\nMulti-floor maps that can be saved have reached the upper limit. You need to replace or discard map before using it."
-)
-NOTIFICATION_2FA_LOGIN: Final = (
-    "### Additional authentication required.\nOpen following URL using device that has the same public IP, as your Home Assistant instance:\n"
-)
+NOTIFICATION_REPLACE_MULTI_MAP: Final = "### A new map has been generated\nMulti-floor maps that can be saved have reached the upper limit. You need to replace or discard map before using it."
+NOTIFICATION_2FA_LOGIN: Final = "### Additional authentication required.\nOpen following URL using device that has the same public IP, as your Home Assistant instance:\n"
 NOTIFICATION_DRAINAGE_COMPLETED: Final = "### Drainage completed"
 NOTIFICATION_DRAINAGE_FAILED: Final = "### Drainage failed"
 

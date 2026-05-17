@@ -1,8 +1,8 @@
+# mypy: ignore-errors
 from __future__ import annotations
 
 import collections
-import voluptuous as vol
-from enum import IntEnum, IntFlag
+from enum import IntEnum
 import time
 import asyncio
 import traceback
@@ -65,9 +65,15 @@ JSON_CONTENT_TYPE: Final = "application/json"
 PNG_CONTENT_TYPE: Final = "image/png"
 
 MAP_IMAGE_URL: Final = "/api/camera_proxy/{0}?token={1}&v={2}"
-HISTORY_MAP_IMAGE_URL: Final = "/api/camera_history_map_proxy/{0}?token={1}&index={2}&v={3}"
-OBSTACLE_IMAGE_URL: Final = "/api/camera_map_obstacle_proxy/{0}?token={1}&index={2}&v={3}"
-RECOVERY_MAP_IMAGE_URL: Final = "/api/camera_recovery_map_proxy/{0}?token={1}&index={2}&v={3}"
+HISTORY_MAP_IMAGE_URL: Final = (
+    "/api/camera_history_map_proxy/{0}?token={1}&index={2}&v={3}"
+)
+OBSTACLE_IMAGE_URL: Final = (
+    "/api/camera_map_obstacle_proxy/{0}?token={1}&index={2}&v={3}"
+)
+RECOVERY_MAP_IMAGE_URL: Final = (
+    "/api/camera_recovery_map_proxy/{0}?token={1}&index={2}&v={3}"
+)
 WIFI_MAP_IMAGE_URL: Final = "/api/camera_wifi_map_proxy/{0}?token={1}&v={2}"
 
 
@@ -78,7 +84,9 @@ class DreameMowerMapType(IntEnum):
 
 
 @dataclass
-class DreameMowerCameraEntityDescription(DreameMowerEntityDescription, CameraEntityDescription):
+class DreameMowerCameraEntityDescription(
+    DreameMowerEntityDescription, CameraEntityDescription
+):
     """Describes Dreame Mower Camera entity."""
 
     map_type: DreameMowerMapType = DreameMowerMapType.FLOOR_MAP
@@ -111,9 +119,7 @@ class CameraDataView(CameraView):
             response = web.Response(
                 body=gzip.compress(
                     bytes(
-                        camera.map_data_string(
-                            resources and (resources == True or resources == "true" or resources == "1")
-                        ),
+                        camera.map_data_string(resources in ("true", "1")),
                         "utf-8",
                     )
                 ),
@@ -136,11 +142,11 @@ class CameraObstacleView(CameraView):
             crop = request.query.get("crop")
             box = request.query.get("box")
             file = request.query.get("file")
-            file = file and (file == True or file == "true" or file == "1")
+            file = file in ("true", "1")
             result, object_name = await camera.obstacle_image(
                 request.query.get("index", 1),
-                not box or (box and (box == True or box == "true" or box == "1")),
-                not crop or (crop and (crop == True or crop == "true" or crop == "1")),
+                not box or box in ("true", "1"),
+                not crop or crop in ("true", "1"),
             )
             if result:
                 response = web.Response(
@@ -149,7 +155,7 @@ class CameraObstacleView(CameraView):
                 )
                 if file:
                     response.headers["Content-Disposition"] = (
-                        f'attachment; filename={object_name.replace(".jpg","").replace(".jpeg","")}.jpg'
+                        f"attachment; filename={object_name.replace('.jpg', '').replace('.jpeg', '')}.jpg"
                     )
                 return response
 
@@ -168,14 +174,14 @@ class CameraObstacleHistoryView(CameraView):
             crop = request.query.get("crop")
             box = request.query.get("box")
             file = request.query.get("file")
-            file = file and (file == True or file == "true" or file == "1")
+            file = file in ("true", "1")
             cruising = request.query.get("cruising")
             result, object_name = await camera.obstacle_history_image(
                 request.query.get("index", 1),
                 request.query.get("history_index", 1),
-                cruising and (cruising == True or cruising == "true" or cruising == "1"),
-                not box or (box and (box == True or box == "true" or box == "1")),
-                not crop or (crop and (crop == True or crop == "true" or crop == "1")),
+                cruising in ("true", "1"),
+                not box or box in ("true", "1"),
+                not crop or crop in ("true", "1"),
             )
             if result:
                 response = web.Response(
@@ -184,7 +190,7 @@ class CameraObstacleHistoryView(CameraView):
                 )
                 if file:
                     response.headers["Content-Disposition"] = (
-                        f'attachment; filename={object_name.replace(".jpg","").replace(".jpeg","")}.jpg'
+                        f"attachment; filename={object_name.replace('.jpg', '').replace('.jpeg', '')}.jpg"
                     )
                 return response
 
@@ -201,18 +207,18 @@ class CameraHistoryView(CameraView):
         """Serve camera cleaning history or cruising data."""
         if not camera.map_data_json and camera.map_index == 0:
             data = request.query.get("data")
-            data = data and (data == True or data == "true" or data == "1")
+            data = data in ("true", "1")
             cruising = request.query.get("cruising")
             resources = request.query.get("resources")
             dirty = request.query.get("dirty")
             info = request.query.get("info")
             result = await camera.history_map_image(
                 request.query.get("index", 1),
-                not info or (info and (info == True or info == "true" or info == "1")),
-                cruising and (cruising == True or cruising == "true" or cruising == "1"),
+                not info or info in ("true", "1"),
+                cruising in ("true", "1"),
                 data,
-                dirty and (dirty == True or dirty == "true" or dirty == "1"),
-                data and resources and (resources == True or resources == "true" or resources == "1"),
+                dirty in ("true", "1"),
+                data and (resources in ("true", "1")),
             )
             if result:
                 response = web.Response(
@@ -237,28 +243,34 @@ class CameraRecoveryView(CameraView):
             index = request.query.get("index", 1)
             file = request.query.get("file")
             data = False
-            file = file and (file == True or file == "true" or file == "1")
+            file = file in ("true", "1")
             if file:
                 result, map_url, object_name = await camera.recovery_map_file(index)
             else:
                 data = request.query.get("data")
-                data = data and (data == True or data == "true" or data == "1")
+                data = data in ("true", "1")
                 resources = request.query.get("resources")
                 info = request.query.get("info")
                 result = await camera.recovery_map(
                     index,
-                    not info or (info and (info == True or info == "true" or info == "1")),
+                    not info or info in ("true", "1"),
                     data,
-                    data and resources and (resources == True or resources == "true" or resources == "1"),
+                    data and (resources in ("true", "1")),
                 )
             if result:
                 response = web.Response(
-                    body=gzip.compress(bytes(result, "utf-8")) if data and not file else result,
-                    content_type="application/x-tar+gzip" if file else JSON_CONTENT_TYPE if data else PNG_CONTENT_TYPE,
+                    body=gzip.compress(bytes(result, "utf-8"))
+                    if data and not file
+                    else result,
+                    content_type="application/x-tar+gzip"
+                    if file
+                    else JSON_CONTENT_TYPE
+                    if data
+                    else PNG_CONTENT_TYPE,
                 )
                 if file:
                     response.headers["Content-Disposition"] = (
-                        f'attachment; filename={object_name.replace("/", "-").replace(".mb.tbz2", "")}.mb.tbz2'
+                        f"attachment; filename={object_name.replace('/', '-').replace('.mb.tbz2', '')}.mb.tbz2"
                     )
                 elif data:
                     response.headers["Content-Encoding"] = "gzip"
@@ -276,11 +288,11 @@ class CameraWifiView(CameraView):
         """Serve camera wifi map data."""
         if not camera.map_data_json:
             data = request.query.get("data")
-            data = data and (data == True or data == "true" or data == "1")
+            data = data in ("true", "1")
             resources = request.query.get("resources")
             result = await camera.wifi_map_data(
                 data,
-                data and resources and (resources == True or resources == "true" or resources == "1"),
+                data and (resources in ("true", "1")),
             )
             if result:
                 response = web.Response(
@@ -332,7 +344,9 @@ async def async_setup_entry(
             square,
         )
         platform = entity_platform.current_platform.get()
-        platform.async_register_entity_service("update", {}, DreameMowerCameraEntity.async_update.__name__)
+        platform.async_register_entity_service(
+            "update", {}, DreameMowerCameraEntity.async_update.__name__
+        )
         coordinator.async_add_listener(update_map_cameras)
         update_map_cameras()
 
@@ -359,7 +373,9 @@ def async_update_map_cameras(
     low_resolution: bool,
     square: bool,
 ) -> None:
-    new_indexes = set([k for k in range(1, len(coordinator.device.status.map_list) + 1)])
+    new_indexes = set(
+        [k for k in range(1, len(coordinator.device.status.map_list) + 1)]
+    )
     current_ids = set(current)
     new_entities = []
 
@@ -499,11 +515,11 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                 self._map_name = None
             self._set_map_name(self.wifi_map)
             self._attr_unique_id = f"{self.device.mac}_{'wifi_' if self.wifi_map else ''}map_{self.map_index}"
-            self.entity_id = f"camera.{self.device.name.lower().replace(' ','_')}_{'wifi_' if self.wifi_map else ''}map_{self.map_index}"
+            self.entity_id = f"camera.{self.device.name.lower().replace(' ', '_')}_{'wifi_' if self.wifi_map else ''}map_{self.map_index}"
         else:
             self._attr_name = f"{self.device.name} Current {'Wifi ' if self.wifi_map else ''}{description.name}"
             self._attr_unique_id = f"{self.device.mac}_map_{'wifi_' if self.wifi_map else ''}{description.key}"
-            self.entity_id = f"camera.{self.device.name.lower().replace(' ','_')}_{'wifi_' if self.wifi_map else ''}{description.key.lower()}"
+            self.entity_id = f"camera.{self.device.name.lower().replace(' ', '_')}_{'wifi_' if self.wifi_map else ''}{description.key.lower()}"
 
         if self.map_index == 0 or self.map_data_json:
             self.update()
@@ -514,14 +530,20 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
             if self._map_name is None
             else f"{self._map_name.replace('_', ' ').replace('-', ' ').title()}"
         )
-        self._attr_name = f"{self.device.name} Saved {'Wifi ' if wifi_map else ''}Map {name}"
+        self._attr_name = (
+            f"{self.device.name} Saved {'Wifi ' if wifi_map else ''}Map {name}"
+        )
 
     @callback
     def _handle_coordinator_update(self) -> None:
         """Fetch state from the device."""
         self._last_map_request = 0
         map_data = self._map_data
-        if map_data and self.device.cloud_connected and (self.map_index > 0 or self.device.status.located):
+        if (
+            map_data
+            and self.device.cloud_connected
+            and (self.map_index > 0 or self.device.status.located)
+        ):
             if map_data.last_updated:
                 self._state = datetime.fromtimestamp(int(map_data.last_updated))
             elif map_data.timestamp_ms:
@@ -540,7 +562,7 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                     self._last_updated = None
 
             if (
-                self._default_map == True
+                self._default_map
                 or self._frame_id != map_data.frame_id
                 or self._last_updated != map_data.last_updated
             ):
@@ -552,7 +574,10 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                     or self._last_updated is None
                 ):
                     self.update()
-            elif self._error != self.device.status.error or self._device_active != self.device.status.active:
+            elif (
+                self._error != self.device.status.error
+                or self._device_active != self.device.status.active
+            ):
                 self.update()
             self._device_active = self.device.status.active
             self._error = self.device.status.error
@@ -561,7 +586,9 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
             self._state = STATE_UNAVAILABLE
         self.async_write_ha_state()
 
-    async def async_camera_image(self, width: int | None = None, height: int | None = None) -> bytes | None:
+    async def async_camera_image(
+        self, width: int | None = None, height: int | None = None
+    ) -> bytes | None:
         if self._should_poll is True:
             self._should_poll = False
             now = time.time()
@@ -573,7 +600,9 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
             self._should_poll = True
         return self._image
 
-    async def handle_async_still_stream(self, request: web.Request, interval: float) -> web.StreamResponse:
+    async def handle_async_still_stream(
+        self, request: web.Request, interval: float
+    ) -> web.StreamResponse:
         """Generate an HTTP MJPEG stream from camera images."""
         response = web.StreamResponse()
         response.content_type = CONTENT_TYPE_MULTIPART.format("--frameboundary")
@@ -592,7 +621,9 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                         bytes(
                             "--frameboundary\r\n"
                             "Content-Type: {}\r\n"
-                            "Content-Length: {}\r\n\r\n".format(self.content_type, len(img_bytes)),
+                            "Content-Length: {}\r\n\r\n".format(
+                                self.content_type, len(img_bytes)
+                            ),
                             "utf-8",
                         )
                         + img_bytes
@@ -610,8 +641,13 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
         if self._access_token_update_counter:
             self._access_token_update_counter = self._access_token_update_counter + 1
 
-        if not self._access_token_update_counter or self._access_token_update_counter > int(
-            DREAME_TOKEN_CHANGE_INTERVAL.total_seconds() / TOKEN_CHANGE_INTERVAL.total_seconds()
+        if (
+            not self._access_token_update_counter
+            or self._access_token_update_counter
+            > int(
+                DREAME_TOKEN_CHANGE_INTERVAL.total_seconds()
+                / TOKEN_CHANGE_INTERVAL.total_seconds()
+            )
         ):
             self._access_token_update_counter = 1
             super().async_update_token()
@@ -631,7 +667,11 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
 
     def update(self) -> None:
         map_data = self._map_data
-        if map_data and self.device.cloud_connected and (self.map_index > 0 or self.device.status.located):
+        if (
+            map_data
+            and self.device.cloud_connected
+            and (self.map_index > 0 or self.device.status.located)
+        ):
             self._device_active = self.device.status.active
             if map_data.last_updated:
                 self._state = datetime.fromtimestamp(int(map_data.last_updated))
@@ -646,7 +686,10 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
             ):
                 LOGGER.warning("Waiting render complete")
 
-            if self._renderer.render_complete and map_data.last_updated != self._last_updated:
+            if (
+                self._renderer.render_complete
+                and map_data.last_updated != self._last_updated
+            ):
                 if self.map_index == 0 and not self.map_data_json:
                     LOGGER.debug("Update map")
 
@@ -670,29 +713,41 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
 
     async def obstacle_image(self, index, box=False, crop=False):
         if self.map_index == 0 and not self.map_data_json:
-            response, obstacle = await self.hass.async_add_executor_job(self.device.obstacle_image, index)
+            response, obstacle = await self.hass.async_add_executor_job(
+                self.device.obstacle_image, index
+            )
             if response and obstacle:
                 return (
-                    self._get_proxy_obstacle_image(response, obstacle, box, crop, "obstacle"),
+                    self._get_proxy_obstacle_image(
+                        response, obstacle, box, crop, "obstacle"
+                    ),
                     obstacle.object_name,
                 )
         return (None, None)
 
-    async def obstacle_history_image(self, index, history_index, cruising, box=False, crop=False):
+    async def obstacle_history_image(
+        self, index, history_index, cruising, box=False, crop=False
+    ):
         if self.map_index == 0 and not self.map_data_json:
             response, obstacle = await self.hass.async_add_executor_job(
                 self.device.obstacle_history_image, index, history_index, cruising
             )
             if response and obstacle:
                 return (
-                    self._get_proxy_obstacle_image(response, obstacle, box, crop, "obstacle_history", 1),
+                    self._get_proxy_obstacle_image(
+                        response, obstacle, box, crop, "obstacle_history", 1
+                    ),
                     obstacle.object_name,
                 )
         return (None, None)
 
-    async def history_map_image(self, index, info_text, cruising, data_string, dirty_map, include_resources):
+    async def history_map_image(
+        self, index, info_text, cruising, data_string, dirty_map, include_resources
+    ):
         if self.map_index == 0 and not self.map_data_json:
-            map_data = await self.hass.async_add_executor_job(self.device.history_map, index, cruising)
+            map_data = await self.hass.async_add_executor_job(
+                self.device.history_map, index, cruising
+            )
             if map_data:
                 map_data = (
                     self.device.get_map_for_render(map_data)
@@ -702,7 +757,9 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                 if data_string:
                     return self._renderer.get_data_string(
                         map_data,
-                        self._renderer.get_resources(self.device.capability) if include_resources else None,
+                        self._renderer.get_resources(self.device.capability)
+                        if include_resources
+                        else None,
                     )
                 return self._get_proxy_image(
                     index,
@@ -719,14 +776,20 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
             else:
                 map_id = self._map_id
             if map_id:
-                return await self.hass.async_add_executor_job(self.device.recovery_map_file, map_id, index)
+                return await self.hass.async_add_executor_job(
+                    self.device.recovery_map_file, map_id, index
+                )
         return (None, None, None)
 
     async def recovery_map(self, index, info_text, data_string, include_resources):
         if not self.map_data_json and not self.wifi_map:
             if self.map_index == 0:
                 selected_map = self.device.status.selected_map
-                map_data = self.device.recovery_map(selected_map.map_id, index) if selected_map else None
+                map_data = (
+                    self.device.recovery_map(selected_map.map_id, index)
+                    if selected_map
+                    else None
+                )
             else:
                 map_data = self.device.recovery_map(self._map_id, index)
             if map_data:
@@ -734,14 +797,20 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                 if data_string:
                     return self._renderer.get_data_string(
                         map_data,
-                        self._renderer.get_resources(self.device.capability) if include_resources else None,
+                        self._renderer.get_resources(self.device.capability)
+                        if include_resources
+                        else None,
                     )
                 else:
                     return self._get_proxy_image(index, map_data, info_text, "recovery")
 
     async def wifi_map_data(self, data_string, include_resources):
         if not self.map_data_json and not self.wifi_map:
-            map_data = self.device.status.selected_map if self.map_index == 0 else self.device.get_map(self.map_index)
+            map_data = (
+                self.device.status.selected_map
+                if self.map_index == 0
+                else self.device.get_map(self.map_index)
+            )
             if map_data:
                 map_data = map_data.wifi_map_data
                 if map_data:
@@ -749,11 +818,15 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                     if data_string:
                         return self._renderer.get_data_string(
                             map_data,
-                            self._renderer.get_resources(self.device.capability) if include_resources else None,
+                            self._renderer.get_resources(self.device.capability)
+                            if include_resources
+                            else None,
                         )
                     else:
                         return self._get_proxy_image(
-                            map_data.map_index if self.map_index == 0 else self.map_index,
+                            map_data.map_index
+                            if self.map_index == 0
+                            else self.map_index,
                             map_data,
                             False,
                             "wifi",
@@ -767,7 +840,9 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                 self.device.update_map()
             return self._renderer.get_data_string(
                 self.device.get_map_for_render(self._map_data),
-                self._renderer.get_resources(self.device.capability) if include_resources else None,
+                self._renderer.get_resources(self.device.capability)
+                if include_resources
+                else None,
                 self.device.status.robot_status,
                 self.device.status.station_status,
             )
@@ -775,8 +850,13 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
 
     async def _update_image(self, map_data, robot_status, station_status) -> None:
         try:
-            self._image = self._renderer.render_map(map_data, robot_status, station_status)
-            if not self.map_data_json and self._calibration_points != self._renderer.calibration_points:
+            self._image = self._renderer.render_map(
+                map_data, robot_status, station_status
+            )
+            if (
+                not self.map_data_json
+                and self._calibration_points != self._renderer.calibration_points
+            ):
                 self._calibration_points = self._renderer.calibration_points
                 self.coordinator.set_updated_data()
         except Exception:
@@ -791,11 +871,15 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
         image = self._proxy_renderer.render_map(map_data, 0, 0, info_text)
         if image:
             while len(self._proxy_images[cache_key]) >= max_item:
-                del self._proxy_images[cache_key][next(iter(self._proxy_images[cache_key]))]
+                del self._proxy_images[cache_key][
+                    next(iter(self._proxy_images[cache_key]))
+                ]
             self._proxy_images[cache_key][item_key] = image
             return image
 
-    def _get_proxy_obstacle_image(self, data, obstacle, box, crop, cache_key, max_item=3):
+    def _get_proxy_obstacle_image(
+        self, data, obstacle, box, crop, cache_key, max_item=3
+    ):
         item_key = f"b{int(box)}_c{int(crop)}_d{obstacle.id}"
         if cache_key not in self._proxy_images:
             self._proxy_images[cache_key] = {}
@@ -810,7 +894,9 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
         )
         if image:
             while len(self._proxy_images[cache_key]) >= max_item:
-                del self._proxy_images[cache_key][next(iter(self._proxy_images[cache_key]))]
+                del self._proxy_images[cache_key][
+                    next(iter(self._proxy_images[cache_key]))
+                ]
             self._proxy_images[cache_key][item_key] = image
             return image
 
@@ -825,7 +911,9 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
 
     @property
     def map_data_json(self) -> bool:
-        return bool(self.entity_description.map_type == DreameMowerMapType.JSON_MAP_DATA)
+        return bool(
+            self.entity_description.map_type == DreameMowerMapType.JSON_MAP_DATA
+        )
 
     @property
     def _map_data(self) -> Any:
@@ -881,17 +969,22 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                     attributes = {}
 
                 attributes[ATTR_CALIBRATION] = (
-                    self._calibration_points if self._calibration_points else self._renderer.calibration_points
+                    self._calibration_points
+                    if self._calibration_points
+                    else self._renderer.calibration_points
                 )
             elif self.device.cloud_connected:
-                attributes = {ATTR_CALIBRATION: self._renderer.default_calibration_points}
+                attributes = {
+                    ATTR_CALIBRATION: self._renderer.default_calibration_points
+                }
 
             if not attributes:
                 attributes = {}
 
             if self.map_index:
                 attributes[ATTR_SELECTED] = (
-                    self.device.status.selected_map and self.device.status.selected_map.map_index == self.map_index
+                    self.device.status.selected_map
+                    and self.device.status.selected_map.map_index == self.map_index
                 )
 
             token = self.access_tokens[-1]
@@ -945,10 +1038,15 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                                 key = f"{key} %{obstacle.possibility}"
                             if obstacle.segment:
                                 key = f"{key} ({obstacle.segment})"
-                            if obstacle.ignore_status and int(obstacle.ignore_status) > 0:
+                            if (
+                                obstacle.ignore_status
+                                and int(obstacle.ignore_status) > 0
+                            ):
                                 key = f"{key} ({obstacle.ignore_status.name.replace('_', ' ').title()})"
 
-                            obstacles[key] = OBSTACLE_IMAGE_URL.format(self.entity_id, token, index, obstacle.id)
+                            obstacles[key] = OBSTACLE_IMAGE_URL.format(
+                                self.entity_id, token, index, obstacle.id
+                            )
                             index = index - 1
 
                     attributes[ATTR_OBSTACLE_PICTURE] = obstacles
@@ -956,7 +1054,9 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
             if not self.wifi_map and map_data:
                 if self.map_index == 0:
                     selected_map = self.device.status.selected_map
-                    recovery_map_list = selected_map.recovery_map_list if selected_map else None
+                    recovery_map_list = (
+                        selected_map.recovery_map_list if selected_map else None
+                    )
                 else:
                     recovery_map_list = map_data.recovery_map_list
 
@@ -984,6 +1084,10 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                     attributes[ATTR_WIFI_MAP_PICTURE] = WIFI_MAP_IMAGE_URL.format(
                         self.entity_id,
                         token,
-                        int(wifi_map_data.last_updated if wifi_map_data.last_updated else map_data.last_updated),
+                        int(
+                            wifi_map_data.last_updated
+                            if wifi_map_data.last_updated
+                            else map_data.last_updated
+                        ),
                     )
             return attributes

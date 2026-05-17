@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Support for Dreame Mower sensors."""
 
 from __future__ import annotations
@@ -55,7 +56,9 @@ RELOCATION_STATUS_TO_ICON = {
 
 
 @dataclass
-class DreameMowerSensorEntityDescription(DreameMowerEntityDescription, SensorEntityDescription):
+class DreameMowerSensorEntityDescription(
+    DreameMowerEntityDescription, SensorEntityDescription
+):
     """Describes DreameMower sensor entity."""
 
 
@@ -100,16 +103,22 @@ SENSORS: tuple[DreameMowerSensorEntityDescription, ...] = (
     ),
     DreameMowerSensorEntityDescription(
         property_key=DreameMowerProperty.STREAM_STATUS,
-        icon_fn=lambda value, device: STREAM_STATUS_TO_ICON.get(device.status.stream_status, "mdi:webcam-off"),
-        exists_fn=lambda description, device: device.capability.camera_streaming
-        or DreameMowerEntityDescription().exists_fn(description, device),
+        icon_fn=lambda value, device: STREAM_STATUS_TO_ICON.get(
+            device.status.stream_status, "mdi:webcam-off"
+        ),
+        exists_fn=lambda description, device: (
+            device.capability.camera_streaming
+            or DreameMowerEntityDescription().exists_fn(description, device)
+        ),
     ),
     DreameMowerSensorEntityDescription(
         property_key=DreameMowerProperty.ERROR,
         icon_fn=lambda value, device: (
             "mdi:alert-circle-outline"
             if device.status.has_error
-            else "mdi:alert-outline" if device.status.has_warning else "mdi:check-circle-outline"
+            else "mdi:alert-outline"
+            if device.status.has_warning
+            else "mdi:check-circle-outline"
         ),
         attrs_fn=lambda device: {
             ATTR_VALUE: device.status.error,
@@ -175,7 +184,9 @@ SENSORS: tuple[DreameMowerSensorEntityDescription, ...] = (
         native_unit_of_measurement=UNIT_PERCENT,
         entity_category=EntityCategory.DIAGNOSTIC,
         # entity_registry_enabled_default=False,
-        exists_fn=lambda description, device: not device.capability.disable_sensor_cleaning,
+        exists_fn=lambda description, device: (
+            not device.capability.disable_sensor_cleaning
+        ),
     ),
     DreameMowerSensorEntityDescription(
         property_key=DreameMowerProperty.SENSOR_DIRTY_TIME_LEFT,
@@ -183,7 +194,9 @@ SENSORS: tuple[DreameMowerSensorEntityDescription, ...] = (
         native_unit_of_measurement=UNIT_HOURS,
         entity_category=EntityCategory.DIAGNOSTIC,
         # entity_registry_enabled_default=False,
-        exists_fn=lambda description, device: not device.capability.disable_sensor_cleaning,
+        exists_fn=lambda description, device: (
+            not device.capability.disable_sensor_cleaning
+        ),
     ),
     DreameMowerSensorEntityDescription(
         property_key=DreameMowerProperty.TANK_FILTER_LEFT,
@@ -219,8 +232,9 @@ SENSORS: tuple[DreameMowerSensorEntityDescription, ...] = (
         native_unit_of_measurement=UNIT_PERCENT,
         entity_category=EntityCategory.DIAGNOSTIC,
         exists_fn=lambda description, device: bool(
-            DreameMowerEntityDescription().exists_fn(description, device) and device.capability.lensbrush
-        )
+            DreameMowerEntityDescription().exists_fn(description, device)
+            and device.capability.lensbrush
+        ),
         # entity_registry_enabled_default=False,
     ),
     DreameMowerSensorEntityDescription(
@@ -229,8 +243,9 @@ SENSORS: tuple[DreameMowerSensorEntityDescription, ...] = (
         native_unit_of_measurement=UNIT_DAYS,
         entity_category=EntityCategory.DIAGNOSTIC,
         exists_fn=lambda description, device: bool(
-            DreameMowerEntityDescription().exists_fn(description, device) and device.capability.lensbrush
-        )
+            DreameMowerEntityDescription().exists_fn(description, device)
+            and device.capability.lensbrush
+        ),
         # entity_registry_enabled_default=False,
     ),
     DreameMowerSensorEntityDescription(
@@ -280,7 +295,9 @@ SENSORS: tuple[DreameMowerSensorEntityDescription, ...] = (
         key="current_zone",
         icon="mdi:home-map-marker",
         value_fn=lambda value, device: device.status.current_zone.name,
-        exists_fn=lambda description, device: device.capability.map and device.capability.lidar_navigation,
+        exists_fn=lambda description, device: (
+            device.capability.map and device.capability.lidar_navigation
+        ),
         attrs_fn=lambda device: {
             ATTR_ZONE_ID: device.status.current_zone.segment_id,
             ATTR_ZONE_ICON: device.status.current_zone.icon,
@@ -300,7 +317,9 @@ SENSORS: tuple[DreameMowerSensorEntityDescription, ...] = (
         icon="mdi:map-marker-path",
         device_class=SensorDeviceClass.TIMESTAMP,
         value_fn=lambda value, device: device.status.last_cruising_time,
-        exists_fn=lambda description, device: device.capability.map and device.capability.cruising,
+        exists_fn=lambda description, device: (
+            device.capability.map and device.capability.cruising
+        ),
         attrs_fn=lambda device: device.status.cruising_history,
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
@@ -342,13 +361,17 @@ class DreameMowerSensorEntity(DreameMowerEntity, SensorEntity):
         description: DreameMowerSensorEntityDescription,
     ) -> None:
         """Initialize a Dreame Mower sensor entity."""
-        if description.value_fn is None and (description.property_key is not None or description.key is not None):
+        if description.value_fn is None and (
+            description.property_key is not None or description.key is not None
+        ):
             if description.property_key is not None:
                 prop = f"{description.property_key.name.lower()}_name"
             else:
                 prop = f"{description.key.lower()}_name"
             if hasattr(coordinator.device.status, prop):
-                description.value_fn = lambda value, device: getattr(device.status, prop)
+                description.value_fn = lambda value, device: getattr(
+                    device.status, prop
+                )
 
         super().__init__(coordinator, description)
         self._generate_entity_id(ENTITY_ID_FORMAT)

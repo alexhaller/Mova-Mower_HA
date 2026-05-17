@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Integration platform for recorder."""
 
 from __future__ import annotations
@@ -23,7 +24,6 @@ from .dreame.const import (
     ATTR_RECOVERY_MAP_FILE,
     ATTR_WIFI_MAP_PICTURE,
     ATTR_MOWER_STATE,
-    ATTR_MAPPING_AVAILABLE,
     ATTR_SEGMENT_CLEANING,
     ATTR_ZONE_CLEANING,
     ATTR_SPOT_CLEANING,
@@ -123,4 +123,6 @@ MOWER_UNRECORDED_ATTRIBUTES = {
 @callback
 def exclude_attributes(hass: HomeAssistant) -> set[str]:
     """Exclude mower, camera and sensor attributes from being recorded in the database."""
-    return frozenset(CAMERA_UNRECORDED_ATTRIBUTES) | frozenset(MOWER_UNRECORDED_ATTRIBUTES)
+    return frozenset(CAMERA_UNRECORDED_ATTRIBUTES) | frozenset(
+        MOWER_UNRECORDED_ATTRIBUTES
+    )

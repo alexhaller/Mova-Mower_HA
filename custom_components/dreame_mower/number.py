@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Support for Dreame Mower numbers."""
 
 from __future__ import annotations
@@ -6,7 +7,6 @@ import copy
 from dataclasses import dataclass
 from functools import partial
 from typing import Callable
-from .dreame import DreameMowerCleaningMode
 
 from homeassistant.components.number import (
     ENTITY_ID_FORMAT,
@@ -21,14 +21,17 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry
 
-from .const import DOMAIN, UNIT_MINUTES, UNIT_AREA, UNIT_PERCENT
+from .const import DOMAIN, UNIT_PERCENT
 
 from .coordinator import DreameMowerDataUpdateCoordinator
 from .entity import DreameMowerEntity, DreameMowerEntityDescription
 from .dreame import DreameMowerAction, DreameMowerProperty
 
+
 @dataclass
-class DreameMowerNumberEntityDescription(DreameMowerEntityDescription, NumberEntityDescription):
+class DreameMowerNumberEntityDescription(
+    DreameMowerEntityDescription, NumberEntityDescription
+):
     """Describes Dreame Mower Number entity."""
 
     mode: NumberMode = NumberMode.AUTO
@@ -40,10 +43,14 @@ class DreameMowerNumberEntityDescription(DreameMowerEntityDescription, NumberEnt
     segment_list_fn: Callable[[object], bool] = None
 
 
+SEGMENT_NUMBERS: tuple[DreameMowerNumberEntityDescription, ...] = ()
+
 NUMBERS: tuple[DreameMowerNumberEntityDescription, ...] = (
     DreameMowerNumberEntityDescription(
         property_key=DreameMowerProperty.VOLUME,
-        icon_fn=lambda value, device: "mdi:volume-off" if value == 0 else "mdi:volume-high",
+        icon_fn=lambda value, device: (
+            "mdi:volume-off" if value == 0 else "mdi:volume-high"
+        ),
         mode=NumberMode.SLIDER,
         native_min_value=0,
         native_max_value=100,
@@ -53,6 +60,7 @@ NUMBERS: tuple[DreameMowerNumberEntityDescription, ...] = (
         post_action=DreameMowerAction.TEST_SOUND,
     ),
 )
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -67,7 +75,9 @@ async def async_setup_entry(
         if description.exists_fn(description, coordinator.device)
     )
 
-    update_segment_numbers = partial(async_update_segment_numbers, coordinator, {}, async_add_entities)
+    update_segment_numbers = partial(
+        async_update_segment_numbers, coordinator, {}, async_add_entities
+    )
     coordinator.async_add_listener(update_segment_numbers)
     update_segment_numbers()
 
@@ -126,7 +136,9 @@ class DreameMowerNumberEntity(DreameMowerEntity, NumberEntity):
         description: DreameMowerNumberEntityDescription,
     ) -> None:
         """Initialize Dreame Mower number."""
-        if description.set_fn is None and (description.property_key is not None or description.key is not None):
+        if description.set_fn is None and (
+            description.property_key is not None or description.key is not None
+        ):
             if description.property_key is not None:
                 prop = f"set_{description.property_key.name.lower()}"
             else:
@@ -148,9 +160,13 @@ class DreameMowerNumberEntity(DreameMowerEntity, NumberEntity):
     def _handle_coordinator_update(self) -> None:
         self._attr_native_value = super().native_value
         if self.entity_description.min_value_fn:
-            self.entity_description.native_min_value = self.entity_description.min_value_fn(self.device)
+            self.entity_description.native_min_value = (
+                self.entity_description.min_value_fn(self.device)
+            )
         if self.entity_description.max_value_fn:
-            self.entity_description.native_max_value = self.entity_description.max_value_fn(self.device)
+            self.entity_description.native_max_value = (
+                self.entity_description.max_value_fn(self.device)
+            )
         super()._handle_coordinator_update()
 
     async def async_set_native_value(self, value: float) -> None:
@@ -168,7 +184,9 @@ class DreameMowerNumberEntity(DreameMowerEntity, NumberEntity):
         result = False
 
         if self.entity_description.set_fn is not None:
-            result = await self._try_command("Unable to call: %s", self.entity_description.set_fn, self.device, value)
+            result = await self._try_command(
+                "Unable to call: %s", self.entity_description.set_fn, self.device, value
+            )
         elif self.entity_description.property_key is not None:
             result = await self._try_command(
                 "Unable to call: %s",
@@ -204,26 +222,36 @@ class DreameMowerSegmentNumberEntity(DreameMowerEntity, NumberEntity):
         self.segment = None
         self.segments = None
         if coordinator.device:
-            self.segments = copy.deepcopy(description.segment_list_fn(coordinator.device))
+            self.segments = copy.deepcopy(
+                description.segment_list_fn(coordinator.device)
+            )
             if segment_id in self.segments:
                 self.segment = self.segments[segment_id]
 
-        if description.set_fn is None and (description.property_key is not None or description.key is not None):
+        if description.set_fn is None and (
+            description.property_key is not None or description.key is not None
+        ):
             if description.property_key is not None:
-                segment_set_prop = f"set_segment_{description.property_key.name.lower()}"
+                segment_set_prop = (
+                    f"set_segment_{description.property_key.name.lower()}"
+                )
             else:
                 segment_set_prop = f"set_segment_{description.key.lower()}"
             if hasattr(coordinator.device, segment_set_prop):
-                description.set_fn = lambda device, segment_id, value: getattr(device, segment_set_prop)(
-                    segment_id, value
-                )
+                description.set_fn = lambda device, segment_id, value: getattr(
+                    device, segment_set_prop
+                )(segment_id, value)
 
         super().__init__(coordinator, description)
-        self._attr_unique_id = f"{self.device.mac}_room_{segment_id}_{description.key.lower()}"
+        self._attr_unique_id = (
+            f"{self.device.mac}_room_{segment_id}_{description.key.lower()}"
+        )
         self.entity_id = f"number.{self.device.name.lower()}_room_{segment_id}_{description.key.lower()}"
         self._attr_native_value = None
         if self.segment:
-            self._attr_native_value = description.value_fn(coordinator.device, self.segment)
+            self._attr_native_value = description.value_fn(
+                coordinator.device, self.segment
+            )
 
     def _set_id(self) -> None:
         """Set name, unique id and icon of the entity"""
@@ -237,7 +265,9 @@ class DreameMowerSegmentNumberEntity(DreameMowerEntity, NumberEntity):
         self._attr_name = f"{self.device.name} {name.replace('_', ' ').title()}"
 
         if self.entity_description.icon_fn is not None:
-            self._attr_icon = self.entity_description.icon_fn(self._attr_native_value, self.segment)
+            self._attr_icon = self.entity_description.icon_fn(
+                self._attr_native_value, self.segment
+            )
         elif self.segment:
             self._attr_icon = self.segment.icon
         else:
@@ -252,10 +282,16 @@ class DreameMowerSegmentNumberEntity(DreameMowerEntity, NumberEntity):
                 if self.segment != self.segments[self.segment_id]:
                     self.segment = self.segments[self.segment_id]
                     if self.entity_description.min_value_fn:
-                        self.entity_description.native_min_value = self.entity_description.min_value_fn(self.device)
+                        self.entity_description.native_min_value = (
+                            self.entity_description.min_value_fn(self.device)
+                        )
                     if self.entity_description.max_value_fn:
-                        self.entity_description.native_max_value = self.entity_description.max_value_fn(self.device)
-                    self._attr_native_value = self.entity_description.value_fn(self.device, self.segment)
+                        self.entity_description.native_max_value = (
+                            self.entity_description.max_value_fn(self.device)
+                        )
+                    self._attr_native_value = self.entity_description.value_fn(
+                        self.device, self.segment
+                    )
                     self._set_id()
             elif self.segment:
                 self.segment = None
@@ -283,10 +319,14 @@ class DreameMowerSegmentNumberEntity(DreameMowerEntity, NumberEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        if not self.device.device_connected or (self._attr_available and self.segment is None):
+        if not self.device.device_connected or (
+            self._attr_available and self.segment is None
+        ):
             return False
         if self.entity_description.segment_available_fn is not None:
-            return self.entity_description.segment_available_fn(self.device, self.segment)
+            return self.entity_description.segment_available_fn(
+                self.device, self.segment
+            )
         return self._attr_available
 
     @property

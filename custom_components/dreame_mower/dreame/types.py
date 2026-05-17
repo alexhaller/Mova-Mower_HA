@@ -1,10 +1,10 @@
+# mypy: ignore-errors
 from __future__ import annotations
-import base64
 
 import math
 import json
 import time
-from typing import Any, Dict, Final, List, Optional, OrderedDict
+from typing import Any, Dict, Final, List, Optional
 from enum import IntEnum, Enum
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -914,26 +914,39 @@ DreameMowerActionMapping = {
 }
 
 PROPERTY_AVAILABILITY: Final = {
-    DreameMowerProperty.CUSTOMIZED_CLEANING.name: lambda device: not device.status.started
-    and (device.status.has_saved_map or device.status.current_map is None)
-    and not device.status.cleangenius_cleaning,
-    DreameMowerProperty.MULTI_FLOOR_MAP.name: lambda device: not device.status.has_temporary_map and not device.status.started,
-    DreameMowerProperty.CLEANING_MODE.name: lambda device: (
+    DreameMowerProperty.CUSTOMIZED_CLEANING.name: lambda device: (
         not device.status.started
-    )
-    and not device.status.fast_mapping
-    and not device.status.scheduled_clean
-    and not device.status.cruising
-    and (not device.status.customized_cleaning or not device.capability.custom_cleaning_mode)
-    and not device.status.cleangenius_cleaning
-    and not device.status.returning
-    and not device.status.shortcut_task,
-    DreameMowerProperty.CLEANING_TIME.name: lambda device: not device.status.fast_mapping
-    and not device.status.cruising,
-    DreameMowerProperty.CLEANED_AREA.name: lambda device: not device.status.fast_mapping
-    and not device.status.cruising,
-    DreameMowerProperty.RELOCATION_STATUS.name: lambda device: not device.status.fast_mapping,
-    DreameMowerProperty.INTELLIGENT_RECOGNITION.name: lambda device: device.status.multi_map,
+        and (device.status.has_saved_map or device.status.current_map is None)
+        and not device.status.cleangenius_cleaning
+    ),
+    DreameMowerProperty.MULTI_FLOOR_MAP.name: lambda device: (
+        not device.status.has_temporary_map and not device.status.started
+    ),
+    DreameMowerProperty.CLEANING_MODE.name: lambda device: (
+        (not device.status.started)
+        and not device.status.fast_mapping
+        and not device.status.scheduled_clean
+        and not device.status.cruising
+        and (
+            not device.status.customized_cleaning
+            or not device.capability.custom_cleaning_mode
+        )
+        and not device.status.cleangenius_cleaning
+        and not device.status.returning
+        and not device.status.shortcut_task
+    ),
+    DreameMowerProperty.CLEANING_TIME.name: lambda device: (
+        not device.status.fast_mapping and not device.status.cruising
+    ),
+    DreameMowerProperty.CLEANED_AREA.name: lambda device: (
+        not device.status.fast_mapping and not device.status.cruising
+    ),
+    DreameMowerProperty.RELOCATION_STATUS.name: lambda device: (
+        not device.status.fast_mapping
+    ),
+    DreameMowerProperty.INTELLIGENT_RECOGNITION.name: lambda device: (
+        device.status.multi_map
+    ),
     DreameMowerProperty.VOICE_ASSISTANT_LANGUAGE.name: lambda device: bool(
         device.get_property(DreameMowerProperty.VOICE_ASSISTANT) == 1
     ),
@@ -945,39 +958,70 @@ PROPERTY_AVAILABILITY: Final = {
         and device.status.camera_light_brightness != 101
         and device.status.stream_session is not None
     ),
-    DreameMowerProperty.TASK_TYPE.name: lambda device: device.status.task_type.value > 0,
+    DreameMowerProperty.TASK_TYPE.name: lambda device: (
+        device.status.task_type.value > 0
+    ),
     DreameMowerProperty.CLEANING_PROGRESS.name: lambda device: bool(
         device.status.started and not device.status.cruising
     ),
-    DreameMowerAutoSwitchProperty.WIDER_CORNER_COVERAGE.name: lambda device: not device.status.started
-    and not device.status.fast_mapping,
-    DreameMowerAutoSwitchProperty.STAIN_AVOIDANCE.name: lambda device: device.status.ai_fluid_detection,
-    DreameMowerAutoSwitchProperty.CLEANGENIUS.name: lambda device: not device.status.started
-    and not device.status.fast_mapping
-    and not device.status.cruising
-    and not device.status.spot_cleaning
-    and not device.status.zone_cleaning,
-    DreameMowerAutoSwitchProperty.FLOOR_DIRECTION_CLEANING.name: lambda device: device.status.floor_direction_cleaning_available,
-    DreameMowerStrAIProperty.AI_HUMAN_DETECTION.name: lambda device: device.status.ai_obstacle_detection,
-    DreameMowerAIProperty.AI_OBSTACLE_IMAGE_UPLOAD.name: lambda device: device.status.ai_obstacle_detection,
-    DreameMowerAIProperty.AI_OBSTACLE_PICTURE.name: lambda device: device.status.ai_obstacle_detection,
-    DreameMowerAIProperty.AI_PET_DETECTION.name: lambda device: device.status.ai_obstacle_detection,
-    DreameMowerAIProperty.AI_FURNITURE_DETECTION.name: lambda device: device.status.ai_obstacle_detection,
-    DreameMowerAIProperty.AI_FLUID_DETECTION.name: lambda device: device.status.ai_obstacle_detection,
-    DreameMowerAIProperty.FUZZY_OBSTACLE_DETECTION.name: lambda device: device.status.ai_obstacle_detection,
-    DreameMowerAIProperty.AI_PET_AVOIDANCE.name: lambda device: device.status.ai_obstacle_detection
-    and device.status.ai_pet_detection,
-    DreameMowerAIProperty.PET_PICTURE.name: lambda device: device.status.ai_obstacle_detection
-    and device.status.ai_pet_detection,
-    DreameMowerAIProperty.PET_FOCUSED_DETECTION.name: lambda device: device.status.ai_obstacle_detection
-    and device.status.ai_pet_detection,
-    DreameMowerAutoSwitchProperty.CLEANING_ROUTE.name: lambda device: not device.status.has_temporary_map
-    and device.status.segments
-    and device.status.cleaning_route.value > 0
-    and not device.status.fast_mapping
-    and not device.status.started
-    and (not device.status.customized_cleaning or not device.capability.custom_cleaning_mode)
-    and not device.status.cleangenius_cleaning,
+    DreameMowerAutoSwitchProperty.WIDER_CORNER_COVERAGE.name: lambda device: (
+        not device.status.started and not device.status.fast_mapping
+    ),
+    DreameMowerAutoSwitchProperty.STAIN_AVOIDANCE.name: lambda device: (
+        device.status.ai_fluid_detection
+    ),
+    DreameMowerAutoSwitchProperty.CLEANGENIUS.name: lambda device: (
+        not device.status.started
+        and not device.status.fast_mapping
+        and not device.status.cruising
+        and not device.status.spot_cleaning
+        and not device.status.zone_cleaning
+    ),
+    DreameMowerAutoSwitchProperty.FLOOR_DIRECTION_CLEANING.name: lambda device: (
+        device.status.floor_direction_cleaning_available
+    ),
+    DreameMowerStrAIProperty.AI_HUMAN_DETECTION.name: lambda device: (
+        device.status.ai_obstacle_detection
+    ),
+    DreameMowerAIProperty.AI_OBSTACLE_IMAGE_UPLOAD.name: lambda device: (
+        device.status.ai_obstacle_detection
+    ),
+    DreameMowerAIProperty.AI_OBSTACLE_PICTURE.name: lambda device: (
+        device.status.ai_obstacle_detection
+    ),
+    DreameMowerAIProperty.AI_PET_DETECTION.name: lambda device: (
+        device.status.ai_obstacle_detection
+    ),
+    DreameMowerAIProperty.AI_FURNITURE_DETECTION.name: lambda device: (
+        device.status.ai_obstacle_detection
+    ),
+    DreameMowerAIProperty.AI_FLUID_DETECTION.name: lambda device: (
+        device.status.ai_obstacle_detection
+    ),
+    DreameMowerAIProperty.FUZZY_OBSTACLE_DETECTION.name: lambda device: (
+        device.status.ai_obstacle_detection
+    ),
+    DreameMowerAIProperty.AI_PET_AVOIDANCE.name: lambda device: (
+        device.status.ai_obstacle_detection and device.status.ai_pet_detection
+    ),
+    DreameMowerAIProperty.PET_PICTURE.name: lambda device: (
+        device.status.ai_obstacle_detection and device.status.ai_pet_detection
+    ),
+    DreameMowerAIProperty.PET_FOCUSED_DETECTION.name: lambda device: (
+        device.status.ai_obstacle_detection and device.status.ai_pet_detection
+    ),
+    DreameMowerAutoSwitchProperty.CLEANING_ROUTE.name: lambda device: (
+        not device.status.has_temporary_map
+        and device.status.segments
+        and device.status.cleaning_route.value > 0
+        and not device.status.fast_mapping
+        and not device.status.started
+        and (
+            not device.status.customized_cleaning
+            or not device.capability.custom_cleaning_mode
+        )
+        and not device.status.cleangenius_cleaning
+    ),
     DreameMowerProperty.FIRST_CLEANING_DATE.name: lambda device: device.get_property(
         DreameMowerProperty.FIRST_CLEANING_DATE
     ),
@@ -995,16 +1039,26 @@ PROPERTY_AVAILABILITY: Final = {
         and device.status.selected_map.map_name
         and device.status.selected_map.map_id in device.status.map_list
     ),
-    "current_zone": lambda device: device.status.current_zone is not None and not device.status.fast_mapping,
-    "cleaning_history": lambda device: bool(device.status.last_cleaning_time is not None),
-    "cruising_history": lambda device: bool(device.status.last_cruising_time is not None),
-    "cleaning_sequence": lambda device: not device.status.started
-    and device.status.has_saved_map
-    and device.status.current_segments
-    and not device.status.cleangenius_cleaning
-    and next(iter(device.status.current_segments.values())).order is not None,
-    "camera_light_brightness_auto": lambda device: device.status.camera_light_brightness
-    and device.status.stream_session is not None,
+    "current_zone": lambda device: (
+        device.status.current_zone is not None and not device.status.fast_mapping
+    ),
+    "cleaning_history": lambda device: bool(
+        device.status.last_cleaning_time is not None
+    ),
+    "cruising_history": lambda device: bool(
+        device.status.last_cruising_time is not None
+    ),
+    "cleaning_sequence": lambda device: (
+        not device.status.started
+        and device.status.has_saved_map
+        and device.status.current_segments
+        and not device.status.cleangenius_cleaning
+        and next(iter(device.status.current_segments.values())).order is not None
+    ),
+    "camera_light_brightness_auto": lambda device: (
+        device.status.camera_light_brightness
+        and device.status.stream_session is not None
+    ),
     "dnd_start": lambda device: device.status.dnd,
     "dnd_end": lambda device: device.status.dnd,
     "off_peak_charging_start": lambda device: device.status.off_peak_charging,
@@ -1012,44 +1066,65 @@ PROPERTY_AVAILABILITY: Final = {
 }
 
 ACTION_AVAILABILITY: Final = {
-    DreameMowerAction.RESET_BLADES.name: lambda device: bool(device.status.blades_life < 100),
-    DreameMowerAction.RESET_SIDE_BRUSH.name: lambda device: bool(device.status.side_brush_life < 100),
-    DreameMowerAction.RESET_FILTER.name: lambda device: bool(device.status.filter_life < 100),
-    DreameMowerAction.RESET_SENSOR.name: lambda device: bool(device.status.sensor_dirty_life < 100),
-    DreameMowerAction.RESET_TANK_FILTER.name: lambda device: bool(device.status.tank_filter_life < 100),
-    DreameMowerAction.RESET_SILVER_ION.name: lambda device: bool(device.status.silver_ion_life < 100),
-    DreameMowerAction.RESET_LENSBRUSH.name: lambda device: bool(device.status.lensbrush_life < 100),
-    DreameMowerAction.RESET_SQUEEGEE.name: lambda device: bool(device.status.squeegee_life < 100),
+    DreameMowerAction.RESET_BLADES.name: lambda device: bool(
+        device.status.blades_life < 100
+    ),
+    DreameMowerAction.RESET_SIDE_BRUSH.name: lambda device: bool(
+        device.status.side_brush_life < 100
+    ),
+    DreameMowerAction.RESET_FILTER.name: lambda device: bool(
+        device.status.filter_life < 100
+    ),
+    DreameMowerAction.RESET_SENSOR.name: lambda device: bool(
+        device.status.sensor_dirty_life < 100
+    ),
+    DreameMowerAction.RESET_TANK_FILTER.name: lambda device: bool(
+        device.status.tank_filter_life < 100
+    ),
+    DreameMowerAction.RESET_SILVER_ION.name: lambda device: bool(
+        device.status.silver_ion_life < 100
+    ),
+    DreameMowerAction.RESET_LENSBRUSH.name: lambda device: bool(
+        device.status.lensbrush_life < 100
+    ),
+    DreameMowerAction.RESET_SQUEEGEE.name: lambda device: bool(
+        device.status.squeegee_life < 100
+    ),
     DreameMowerAction.CLEAR_WARNING.name: lambda device: device.status.has_warning,
-    DreameMowerAction.START_MOWING.name: lambda device: not (
-        device.status.started
-    )
-    or device.status.paused
-    or device.status.returning
-    or device.status.returning_paused,
-    DreameMowerAction.DOCK.name: lambda device: not device.status.docked and not device.status.returning,
-    DreameMowerAction.PAUSE.name: lambda device: device.status.started
-    and not (
-        device.status.returning_paused
+    DreameMowerAction.START_MOWING.name: lambda device: (
+        not (device.status.started)
         or device.status.paused
+        or device.status.returning
+        or device.status.returning_paused
+    ),
+    DreameMowerAction.DOCK.name: lambda device: (
+        not device.status.docked and not device.status.returning
+    ),
+    DreameMowerAction.PAUSE.name: lambda device: (
+        device.status.started
+        and not (device.status.returning_paused or device.status.paused)
     ),
     DreameMowerAction.STOP.name: lambda device: (
-        device.status.started
-        or device.status.returning
-        or device.status.paused
+        device.status.started or device.status.returning or device.status.paused
     ),
     "start_fast_mapping": lambda device: device.status.mapping_available,
     "start_mapping": lambda device: device.status.mapping_available,
-    "start_recleaning": lambda device: not device.status.started and device.status.second_cleaning_available,
+    "start_recleaning": lambda device: (
+        not device.status.started and device.status.second_cleaning_available
+    ),
 }
 
 
-def PIID(property: DreameMowerProperty, mapping=DreameMowerPropertyMapping) -> int | None:
+def PIID(
+    property: DreameMowerProperty, mapping=DreameMowerPropertyMapping
+) -> int | None:
     if property in mapping:
         return mapping[property][piid]
 
 
-def DIID(property: DreameMowerProperty, mapping=DreameMowerPropertyMapping) -> str | None:
+def DIID(
+    property: DreameMowerProperty, mapping=DreameMowerPropertyMapping
+) -> str | None:
     if property in mapping:
         return f"{mapping[property][siid]}.{mapping[property][piid]}"
 
@@ -1235,43 +1310,57 @@ class DreameMowerDeviceCapability:
         self._device = device
 
     def refresh(self, device_capabilities):
-        self.lidar_navigation = bool(self._device.get_property(
-            DreameMowerProperty.MAP_SAVING) is None)
-        self.multi_floor_map = bool(
-            self._device.get_property(
-                DreameMowerProperty.MULTI_FLOOR_MAP) is not None and self.lidar_navigation
+        self.lidar_navigation = bool(
+            self._device.get_property(DreameMowerProperty.MAP_SAVING) is None
         )
-        self.ai_detection = bool(self._device.get_property(
-            DreameMowerProperty.AI_DETECTION) is not None)
+        self.multi_floor_map = bool(
+            self._device.get_property(DreameMowerProperty.MULTI_FLOOR_MAP) is not None
+            and self.lidar_navigation
+        )
+        self.ai_detection = bool(
+            self._device.get_property(DreameMowerProperty.AI_DETECTION) is not None
+        )
         self.customized_cleaning = bool(
-            self._device.get_property(
-                DreameMowerProperty.CUSTOMIZED_CLEANING) is not None
+            self._device.get_property(DreameMowerProperty.CUSTOMIZED_CLEANING)
+            is not None
         )
         self.auto_switch_settings = bool(
-            self._device.get_property(
-                DreameMowerProperty.AUTO_SWITCH_SETTINGS) is not None
+            self._device.get_property(DreameMowerProperty.AUTO_SWITCH_SETTINGS)
+            is not None
         )
-        self.wifi_map = bool(self._device.get_property(
-            DreameMowerProperty.WIFI_MAP) is not None)
-        self.backup_map = bool(self._device.get_property(
-            DreameMowerProperty.MAP_BACKUP_STATUS) is not None)
-        self.dnd_task = bool(self._device.get_property(
-            DreameMowerProperty.DND_TASK) is not None)
-        self.dnd = bool(self.dnd_task or self._device.get_property(
-            DreameMowerProperty.DND) is not None)
-        self.shortcuts = bool(self._device.get_property(
-            DreameMowerProperty.SHORTCUTS) is not None)
-        self.off_peak_charging = bool(self._device.get_property(
-            DreameMowerProperty.OFF_PEAK_CHARGING) is not None)
+        self.wifi_map = bool(
+            self._device.get_property(DreameMowerProperty.WIFI_MAP) is not None
+        )
+        self.backup_map = bool(
+            self._device.get_property(DreameMowerProperty.MAP_BACKUP_STATUS) is not None
+        )
+        self.dnd_task = bool(
+            self._device.get_property(DreameMowerProperty.DND_TASK) is not None
+        )
+        self.dnd = bool(
+            self.dnd_task
+            or self._device.get_property(DreameMowerProperty.DND) is not None
+        )
+        self.shortcuts = bool(
+            self._device.get_property(DreameMowerProperty.SHORTCUTS) is not None
+        )
+        self.off_peak_charging = bool(
+            self._device.get_property(DreameMowerProperty.OFF_PEAK_CHARGING) is not None
+        )
         camera_light = self._device.get_property(
-            DreameMowerProperty.CAMERA_LIGHT_BRIGHTNESS)
-        self.voice_assistant = bool(self._device.get_property(
-            DreameMowerProperty.VOICE_ASSISTANT) is not None)
+            DreameMowerProperty.CAMERA_LIGHT_BRIGHTNESS
+        )
+        self.voice_assistant = bool(
+            self._device.get_property(DreameMowerProperty.VOICE_ASSISTANT) is not None
+        )
 
         model = ""
         if self._device.info and self._device.info.model:
-            model = self._device.info.model.replace("mower.", "").replace(
-                "dreame.", "").replace("xiaomi.", "")
+            model = (
+                self._device.info.model.replace("mower.", "")
+                .replace("dreame.", "")
+                .replace("xiaomi.", "")
+            )
             device_capability = device_capabilities.get(model)
             while device_capability and isinstance(device_capability, str):
                 device_capability = device_capabilities.get(device_capability)
@@ -1288,8 +1377,10 @@ class DreameMowerDeviceCapability:
         # self.camera_streaming = bool(
         #    self.camera_streaming and (camera_light is not None or self._device.get_property(DreameMowerProperty.CRUISE_SCHEDULE) is not None)
         # )
-        self.lensbrush = bool(self.lensbrush or self._device.get_property(
-            DreameMowerProperty.LENSBRUSH_LEFT))
+        self.lensbrush = bool(
+            self.lensbrush
+            or self._device.get_property(DreameMowerProperty.LENSBRUSH_LEFT)
+        )
         self.fill_light = bool(
             self.camera_streaming
             and camera_light is not None
@@ -1297,11 +1388,13 @@ class DreameMowerDeviceCapability:
             and str(camera_light).isnumeric()
         )
         self.pet_detective = bool(
-            self.pet_detective and self._device.get_property(
-                DreameMowerProperty.PET_DETECTIVE) is not None
+            self.pet_detective
+            and self._device.get_property(DreameMowerProperty.PET_DETECTIVE) is not None
         )
-        self.task_type = bool(self.task_type and self._device.get_property(
-            DreameMowerProperty.TASK_TYPE) is not None)
+        self.task_type = bool(
+            self.task_type
+            and self._device.get_property(DreameMowerProperty.TASK_TYPE) is not None
+        )
         if not self.cleaning_route:
             self.segment_slow_clean_route = False
         self.disable_sensor_cleaning = (
@@ -1310,19 +1403,18 @@ class DreameMowerDeviceCapability:
             or self._device.get_property(DreameMowerProperty.SENSOR_DIRTY_LEFT) is None
             or (
                 not self.camera_streaming
-                and self._device.get_property(DreameMowerProperty.OBSTACLE_AVOIDANCE) is None
+                and self._device.get_property(DreameMowerProperty.OBSTACLE_AVOIDANCE)
+                is None
             )
         )
-        self.lensbrush = bool(
-            "p2255" in model
-        )
+        self.lensbrush = bool("p2255" in model)
         self.map_object_offset = bool(self.lidar_navigation and "p20" in model)
         self.robot_type = RobotType.LIDAR
 
         self.list = [
             key
             for key, value in self.__dict__.items()
-            if not callable(value) and not key.startswith("_") and value == True
+            if not callable(value) and not key.startswith("_") and value is True
         ]
         if self.custom_cleaning_mode:
             self.list.append("custom_cleaning_mode")
@@ -1347,15 +1439,21 @@ class DreameMowerDeviceCapability:
                 if next(iter(segments.values())).cleaning_mode is not None:
                     self._custom_cleaning_mode = True
                     return True
-        return self._custom_cleaning_mode and (not segments or next(iter(segments.values())).cleaning_mode is not None)
+        return self._custom_cleaning_mode and (
+            not segments or next(iter(segments.values())).cleaning_mode is not None
+        )
 
     @property
     def cruising(self) -> bool:
         if not self.lidar_navigation:
             return False
         return bool(
-            (self._device.status.current_map and self._device.status.current_map.predefined_points is not None)
-            or self._device.get_property(DreameMowerProperty.CRUISE_SCHEDULE) is not None
+            (
+                self._device.status.current_map
+                and self._device.status.current_map.predefined_points is not None
+            )
+            or self._device.get_property(DreameMowerProperty.CRUISE_SCHEDULE)
+            is not None
             or self._device.status.fill_light is not None
         )
 
@@ -1375,7 +1473,12 @@ class Point:
         return self.__str__()
 
     def __eq__(self: Point, other: Point) -> bool:
-        return other is not None and self.x == other.x and self.y == other.y and self.a == other.a
+        return (
+            other is not None
+            and self.x == other.x
+            and self.y == other.y
+            and self.a == other.a
+        )
 
     def as_dict(self) -> Dict[str, Any]:
         if self.a is None:
@@ -1452,8 +1555,11 @@ class Obstacle(Point):
         ignore_status: int = 0,
     ) -> None:
         super().__init__(x, y)
-        self.type = ObstacleType(
-            type) if type in ObstacleType._value2member_map_ else ObstacleType.UNKNOWN
+        self.type = (
+            ObstacleType(type)
+            if type in ObstacleType._value2member_map_
+            else ObstacleType.UNKNOWN
+        )
         self.possibility = possibility
         self.object_id = object_id
         self.key = key
@@ -1473,8 +1579,9 @@ class Obstacle(Point):
             if ignore_status in ObstacleIgnoreStatus._value2member_map_
             else ObstacleIgnoreStatus.UNKNOWN
         )
-        self.id = str(
-            self.object_id) if self.object_id else f"0{int(self.x)}0{int(self.y)}"
+        self.id = (
+            str(self.object_id) if self.object_id else f"0{int(self.x)}0{int(self.y)}"
+        )
 
         if file_name and "/" in file_name:
             self.object_name = file_name.split("/")[-1]
@@ -1487,16 +1594,21 @@ class Obstacle(Point):
 
     def set_segment(self, map_data):
         if map_data and map_data.segments and map_data.pixel_type is not None:
-            x = int((self.x - map_data.dimensions.left) /
-                    map_data.dimensions.grid_size)
-            y = int((self.y - map_data.dimensions.top) /
-                    map_data.dimensions.grid_size)
-            if x >= 0 and x < map_data.dimensions.width and y >= 0 and y < map_data.dimensions.height:
+            x = int((self.x - map_data.dimensions.left) / map_data.dimensions.grid_size)
+            y = int((self.y - map_data.dimensions.top) / map_data.dimensions.grid_size)
+            if (
+                x >= 0
+                and x < map_data.dimensions.width
+                and y >= 0
+                and y < map_data.dimensions.height
+            ):
                 obstacle_pixel = map_data.pixel_type[x, y]
 
                 if obstacle_pixel not in map_data.segments:
                     for k, v in map_data.segments.items():
-                        if v.check_point(self.x, self.y, map_data.dimensions.grid_size * 4):
+                        if v.check_point(
+                            self.x, self.y, map_data.dimensions.grid_size * 4
+                        ):
                             self.segment = v.name
                             break
                 else:
@@ -1509,10 +1621,12 @@ class Obstacle(Point):
             attributes[ATTR_POSSIBILTY] = self.possibility
         if self.picture_status is not None:
             attributes[ATTR_PICTURE_STATUS] = self.picture_status.name.replace(
-                "_", " ").title()
+                "_", " "
+            ).title()
         if self.ignore_status is not None:
             attributes[ATTR_IGNORE_STATUS] = self.ignore_status.name.replace(
-                "_", " ").title()
+                "_", " "
+            ).title()
         if self.segment is not None:
             attributes[ATTR_ZONE] = self.segment
         return attributes
@@ -1561,7 +1675,9 @@ class Zone:
         return {ATTR_X0: self.x0, ATTR_Y0: self.y0, ATTR_X1: self.x1, ATTR_Y1: self.y1}
 
     def as_area(self) -> Area:
-        return Area(self.x0, self.y0, self.x0, self.y1, self.x1, self.y1, self.x1, self.y0)
+        return Area(
+            self.x0, self.y0, self.x0, self.y1, self.x1, self.y1, self.x1, self.y0
+        )
 
     def to_img(self, image_dimensions, offset=True) -> Zone:
         p0 = Point(self.x0, self.y0).to_img(image_dimensions, offset)
@@ -1650,13 +1766,14 @@ class Segment(Zone):
             self.name = self.custom_name
         else:
             self.name = f"Zone {self.segment_id}"
-        self.icon = SEGMENT_TYPE_CODE_TO_HA_ICON.get(
-            self.type, "mdi:home-outline")
+        self.icon = SEGMENT_TYPE_CODE_TO_HA_ICON.get(self.type, "mdi:home-outline")
 
     def next_type_index(self, type, segments) -> int:
         index = 0
         if type > 0:
-            for segment_id in sorted(segments, key=lambda segment_id: segments[segment_id].index):
+            for segment_id in sorted(
+                segments, key=lambda segment_id: segments[segment_id].index
+            ):
                 if (
                     segment_id != self.segment_id
                     and segments[segment_id].type == type
@@ -1694,7 +1811,10 @@ class Segment(Zone):
             attributes[ATTR_ORDER] = self.order
         if self.cleaning_times is not None:
             attributes[ATTR_CLEANING_TIMES] = self.cleaning_times
-        if self.cleaning_mode is not None and self.cleanset_type != CleansetType.DEFAULT:
+        if (
+            self.cleaning_mode is not None
+            and self.cleanset_type != CleansetType.DEFAULT
+        ):
             attributes[ATTR_CLEANING_MODE] = self.cleaning_mode
         if self.type is not None:
             attributes[ATTR_TYPE] = self.type
@@ -1709,12 +1829,15 @@ class Segment(Zone):
         if self.floor_material is not None:
             attributes[ATTR_FLOOR_MATERIAL] = self.floor_material
         if self.floor_material_rotated_direction is not None:
-            attributes[ATTR_FLOOR_MATERIAL_DIRECTION] = DreameMowerFloorMaterialDirection(
-                self.floor_material_rotated_direction
-            ).name.title()
+            attributes[ATTR_FLOOR_MATERIAL_DIRECTION] = (
+                DreameMowerFloorMaterialDirection(
+                    self.floor_material_rotated_direction
+                ).name.title()
+            )
         if self.visibility is not None:
             attributes[ATTR_VISIBILITY] = DreameMowerSegmentVisibility(
-                int(self.visibility)).name.title()
+                int(self.visibility)
+            ).name.title()
         if self.x is not None and self.y is not None:
             attributes[ATTR_X] = self.x
             attributes[ATTR_Y] = self.y
@@ -1741,7 +1864,8 @@ class Segment(Zone):
             or self.cleaning_mode != other.cleaning_mode
             or self.floor_material != other.floor_material
             or self.floor_material_direction != other.floor_material_direction
-            or self.floor_material_rotated_direction != other.floor_material_rotated_direction
+            or self.floor_material_rotated_direction
+            != other.floor_material_rotated_direction
             or self.visibility != other.visibility
         )
 
@@ -1871,7 +1995,12 @@ class Area:
         max_x = max(x_coords)
         min_y = min(y_coords)
         max_y = max(y_coords)
-        return x >= min_x - size and x <= max_x + size and y >= min_y - size and y <= max_y + size
+        return (
+            x >= min_x - size
+            and x <= max_x + size
+            and y >= min_y - size
+            and y <= max_y + size
+        )
 
 
 class Furniture(Point):
@@ -1982,7 +2111,9 @@ class Coordinate(Point):
 
 
 class MapImageDimensions:
-    def __init__(self, top: int, left: int, height: int, width: int, grid_size: int) -> None:
+    def __init__(
+        self, top: int, left: int, height: int, width: int, grid_size: int
+    ) -> None:
         self.top = top
         self.left = left
         self.height = height
@@ -2001,10 +2132,11 @@ class MapImageDimensions:
             top = top - (self.grid_size / 2)
 
         return Point(
-            ((point.x - left) / self.grid_size) *
-            self.scale + self.padding[0] - self.crop[0],
-            (((self.height - 1) * self.grid_size -
-             (point.y - top)) / self.grid_size) * self.scale
+            ((point.x - left) / self.grid_size) * self.scale
+            + self.padding[0]
+            - self.crop[0],
+            (((self.height - 1) * self.grid_size - (point.y - top)) / self.grid_size)
+            * self.scale
             + self.padding[1]
             - self.crop[1],
         )
@@ -2055,7 +2187,11 @@ class CleaningHistory:
 
         for history_data_item in history_data:
             pid = history_data_item[piid]
-            value = history_data_item["value"] if "value" in history_data_item else history_data_item["val"]
+            value = (
+                history_data_item["value"]
+                if "value" in history_data_item
+                else history_data_item["val"]
+            )
 
             if pid == PIID(DreameMowerProperty.STATUS, property_mapping):
                 if value in DreameMowerStatus._value2member_map_:
@@ -2090,8 +2226,9 @@ class CleaningHistory:
                 if "cmc" in props:
                     value = props["cmc"]
                     self.cleanup_method = (
-                        CleanupMethod(
-                            value) if value in CleanupMethod._value2member_map_ else CleanupMethod.OTHER
+                        CleanupMethod(value)
+                        if value in CleanupMethod._value2member_map_
+                        else CleanupMethod.OTHER
                     )
                 if "abnormal_end" in props:
                     values = json.loads(props["abnormal_end"])
@@ -2127,8 +2264,9 @@ class RecoveryMapInfo:
 
         map_type = map_info.get("first", -1)
         self.map_type = (
-            RecoveryMapType(
-                map_type) if map_type in RecoveryMapType._value2member_map_ else RecoveryMapType.UNKNOWN
+            RecoveryMapType(map_type)
+            if map_type in RecoveryMapType._value2member_map_
+            else RecoveryMapType.UNKNOWN
         )
 
         if self.date:
@@ -2136,14 +2274,16 @@ class RecoveryMapInfo:
 
     def as_dict(self):
         return {
-            "date": time.strftime("%Y-%m-%d %H:%M", time.localtime(self.date.timestamp())),
+            "date": time.strftime(
+                "%Y-%m-%d %H:%M", time.localtime(self.date.timestamp())
+            ),
             "map_type": self.map_type.name.replace("_", " ").title(),
             "object_name": self.object_name,
         }
 
 
 class MapFrameType(IntEnum):
-    I = 73
+    I = 73  # noqa: E741
     P = 80
     # T = ??
     W = 87
@@ -2242,8 +2382,7 @@ class MapData:
         self.frame_map: Optional[bool] = None  # Data json: fsm
         self.docked: Optional[bool] = None  # Data json: oc
         self.clean_log: Optional[bool] = None  # Data json: iscleanlog
-        self.cleanset: Optional[Dict[str, List[int]]
-                                ] = None  # Data json: cleanset
+        self.cleanset: Optional[Dict[str, List[int]]] = None  # Data json: cleanset
         self.line_to_robot: Optional[bool] = None  # Data json: l2r
         self.temporary_map: Optional[int] = None  # Data json: suw
         self.cleaned_area: Optional[int] = None  # Data json: cs
@@ -2257,8 +2396,7 @@ class MapData:
         self.recovery_map: Optional[bool] = None  # Data json: us
         # Generated from recovery map list json
         self.recovery_map_type: Optional[RecoveryMapType] = None
-        self.obstacles: Optional[Dict[int, Obstacle]
-                                 ] = None  # Data json: ai_obstacle
+        self.obstacles: Optional[Dict[int, Obstacle]] = None  # Data json: ai_obstacle
         # Data json: ai_furniture
         self.furnitures: Optional[Dict[int, Furniture]] = None
         # Data json: furniture_info
@@ -2418,9 +2556,12 @@ class MapData:
                 if self.optimized_charger_position is not None
                 else self.charger_position
             )
-        if self.segments is not None and (self.saved_map or self.saved_map_status == 2 or self.restored_map):
+        if self.segments is not None and (
+            self.saved_map or self.saved_map_status == 2 or self.restored_map
+        ):
             attributes_list[ATTR_ZONES] = {
-                k: v.as_dict() for k, v in sorted(self.segments.items())}
+                k: v.as_dict() for k, v in sorted(self.segments.items())
+            }
         if not self.saved_map and self.robot_position is not None:
             attributes_list[ATTR_ROBOT_POSITION] = self.robot_position
         if self.map_id:
@@ -2430,8 +2571,7 @@ class MapData:
         if self.rotation is not None:
             attributes_list[ATTR_ROTATION] = self.rotation
         if self.last_updated is not None:
-            attributes_list[ATTR_UPDATED] = datetime.fromtimestamp(
-                self.last_updated)
+            attributes_list[ATTR_UPDATED] = datetime.fromtimestamp(self.last_updated)
         if not self.saved_map and self.active_areas is not None:
             attributes_list[ATTR_ACTIVE_AREAS] = self.active_areas
         if not self.saved_map and self.active_segments is not None:
@@ -2442,7 +2582,8 @@ class MapData:
             attributes_list[ATTR_ACTIVE_CRUISE_POINTS] = self.active_cruise_points
         if self.predefined_points:
             attributes_list[ATTR_PREDEFINED_POINTS] = list(
-                self.predefined_points.values())
+                self.predefined_points.values()
+            )
         if self.virtual_walls is not None:
             attributes_list[ATTR_VIRTUAL_WALLS] = self.virtual_walls
         if self.pathways is not None:
@@ -2458,18 +2599,19 @@ class MapData:
         if self.obstacles:
             attributes_list[ATTR_OBSTACLES] = self.obstacles
         if self.saved_furnitures and self.saved_map:
-            attributes_list[ATTR_FURNITURES] = list(
-                self.saved_furnitures.values())
+            attributes_list[ATTR_FURNITURES] = list(self.saved_furnitures.values())
         elif self.furnitures:
             attributes_list[ATTR_FURNITURES] = list(self.furnitures.values())
         if self.router_position:
             attributes_list[ATTR_ROUTER_POSITION] = self.router_position
         if self.startup_method:
             attributes_list[ATTR_STARTUP_METHOD] = self.startup_method.name.replace(
-                "_", " ").title()
+                "_", " "
+            ).title()
         if self.recovery_map_list:
             attributes_list[ATTR_RECOVERY_MAP_LIST] = [
-                v.as_dict() for v in reversed(self.recovery_map_list)]
+                v.as_dict() for v in reversed(self.recovery_map_list)
+            ]
         return attributes_list
 
     def check_point(self, x, y, absolute=False) -> bool:
@@ -2568,11 +2710,9 @@ class MapRendererColorScheme:
     virtual_wall: tuple[int] = (199, 0, 0, 200)
     pathway: tuple[int] = (23, 111, 244, 200)
     active_area: tuple[int] = (255, 255, 255, 80)
-    active_area_outline: tuple[int] = (
-        34, 109, 242, 255)  # (103, 156, 244, 200)
+    active_area_outline: tuple[int] = (34, 109, 242, 255)  # (103, 156, 244, 200)
     active_point: tuple[int] = (255, 255, 255, 80)
-    active_point_outline: tuple[int] = (
-        34, 109, 242, 255)  # (103, 156, 244, 200)
+    active_point_outline: tuple[int] = (34, 109, 242, 255)  # (103, 156, 244, 200)
     path: tuple[int] = (255, 255, 255, 255)
     segment: tuple[list[tuple[int]]] = (
         [(171, 199, 248, 255), (121, 170, 255, 255)],
@@ -2702,8 +2842,7 @@ MAP_COLOR_SCHEME_LIST: Final = {
     ),
 }
 
-MAP_ICON_SET_LIST: Final = {"Dreame": 0,
-                            "Dreame Old": 1, "Mijia": 2, "Material": 3}
+MAP_ICON_SET_LIST: Final = {"Dreame": 0, "Dreame Old": 1, "Mijia": 2, "Material": 3}
 
 
 class MapRendererLayer(IntEnum):

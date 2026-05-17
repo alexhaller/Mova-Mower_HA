@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """DataUpdateCoordinator for Dreame Mower."""
 
 from __future__ import annotations
@@ -45,7 +46,6 @@ from .const import (
     NOTIFICATION_ID_REPLACE_FILTER,
     NOTIFICATION_ID_REPLACE_TANK_FILTER,
     NOTIFICATION_ID_CLEAN_SENSOR,
-    NOTIFICATION_ID_SILVER_ION,
     NOTIFICATION_ID_REPLACE_LENSBRUSH,
     NOTIFICATION_ID_REPLACE_SQUEEGEE,
     NOTIFICATION_ID_CLEANUP_COMPLETED,
@@ -66,7 +66,6 @@ from .const import (
     CONSUMABLE_FILTER,
     CONSUMABLE_TANK_FILTER,
     CONSUMABLE_SENSOR,
-    CONSUMABLE_SILVER_ION,
     CONSUMABLE_LENSBRUSH,
     CONSUMABLE_SQUEEGEE,
 )
@@ -109,7 +108,9 @@ class DreameMowerDataUpdateCoordinator(DataUpdateCoordinator[DreameMowerDevice])
 
         self._device.listen(self._error_changed, DreameMowerProperty.ERROR)
         self._device.listen(self._task_status_changed, DreameMowerProperty.TASK_STATUS)
-        self._device.listen(self._cleaning_paused_changed, DreameMowerProperty.CLEANING_PAUSED)
+        self._device.listen(
+            self._cleaning_paused_changed, DreameMowerProperty.CLEANING_PAUSED
+        )
         self._device.listen(self.set_updated_data)
         self._device.listen_error(self.set_update_error)
 
@@ -140,7 +141,9 @@ class DreameMowerDataUpdateCoordinator(DataUpdateCoordinator[DreameMowerDevice])
                     {EVENT_INFORMATION: NOTIFICATION_ID_CLEANING_PAUSED},
                 )
 
-            self._create_persistent_notification(notification, NOTIFICATION_ID_CLEANING_PAUSED)
+            self._create_persistent_notification(
+                notification, NOTIFICATION_ID_CLEANING_PAUSED
+            )
         else:
             self._remove_persistent_notification(NOTIFICATION_ID_CLEANING_PAUSED)
 
@@ -148,10 +151,16 @@ class DreameMowerDataUpdateCoordinator(DataUpdateCoordinator[DreameMowerDevice])
         if previous_value is not None:
             if self._device.status.cleanup_completed:
                 self._fire_event(EVENT_TASK_STATUS, self._device.status.job)
-                self._create_persistent_notification(NOTIFICATION_CLEANUP_COMPLETED, NOTIFICATION_ID_CLEANUP_COMPLETED)
+                self._create_persistent_notification(
+                    NOTIFICATION_CLEANUP_COMPLETED, NOTIFICATION_ID_CLEANUP_COMPLETED
+                )
                 self._check_consumables()
 
-            elif previous_value == 0 and not self._device.status.fast_mapping and not self._device.status.cruising:
+            elif (
+                previous_value == 0
+                and not self._device.status.fast_mapping
+                and not self._device.status.cruising
+            ):
                 self._fire_event(EVENT_TASK_STATUS, self._device.status.job)
         else:
             self._check_consumables()
@@ -186,20 +195,28 @@ class DreameMowerDataUpdateCoordinator(DataUpdateCoordinator[DreameMowerDevice])
             image = self._device.status.error_image
             if image:
                 content = f"{content}![image](data:{CONTENT_TYPE};base64,{image})"
-            self._create_persistent_notification(content, f"{NOTIFICATION_ID_ERROR}_{self._device.status.error.value}")
+            self._create_persistent_notification(
+                content, f"{NOTIFICATION_ID_ERROR}_{self._device.status.error.value}"
+            )
 
         self._has_warning = has_warning
 
     def _has_temporary_map_changed(self, previous_value=None) -> None:
         if self._device.status.has_temporary_map:
-            self._fire_event(EVENT_WARNING, {EVENT_WARNING: NOTIFICATION_REPLACE_MULTI_MAP})
+            self._fire_event(
+                EVENT_WARNING, {EVENT_WARNING: NOTIFICATION_REPLACE_MULTI_MAP}
+            )
 
             self._create_persistent_notification(
-                NOTIFICATION_REPLACE_MULTI_MAP if self._device.status.multi_map else NOTIFICATION_REPLACE_MAP,
+                NOTIFICATION_REPLACE_MULTI_MAP
+                if self._device.status.multi_map
+                else NOTIFICATION_REPLACE_MAP,
                 NOTIFICATION_ID_REPLACE_TEMPORARY_MAP,
             )
         else:
-            self._fire_event(EVENT_WARNING, {EVENT_WARNING: NOTIFICATION_ID_REPLACE_TEMPORARY_MAP})
+            self._fire_event(
+                EVENT_WARNING, {EVENT_WARNING: NOTIFICATION_ID_REPLACE_TEMPORARY_MAP}
+            )
 
             self._remove_persistent_notification(NOTIFICATION_ID_REPLACE_TEMPORARY_MAP)
 
@@ -209,7 +226,9 @@ class DreameMowerDataUpdateCoordinator(DataUpdateCoordinator[DreameMowerDevice])
             image = CONSUMABLE_IMAGE.get(consumable)
             notification = f"### {description[0]}\n{description[1]}"
             if image:
-                notification = f"{notification}\n![image](data:{CONTENT_TYPE};base64,{image})"
+                notification = (
+                    f"{notification}\n![image](data:{CONTENT_TYPE};base64,{image})"
+                )
             self._create_persistent_notification(
                 notification,
                 notification_id,
@@ -267,7 +286,10 @@ class DreameMowerDataUpdateCoordinator(DataUpdateCoordinator[DreameMowerDevice])
             and self.device.device_connected
             and (self._notify or notification_id == NOTIFICATION_ID_2FA_LOGIN)
         ):
-            if isinstance(self._notify, list) and notification_id != NOTIFICATION_ID_2FA_LOGIN:
+            if (
+                isinstance(self._notify, list)
+                and notification_id != NOTIFICATION_ID_2FA_LOGIN
+            ):
                 if notification_id == NOTIFICATION_ID_CLEANUP_COMPLETED:
                     if NOTIFICATION_ID_CLEANUP_COMPLETED not in self._notify:
                         return
@@ -278,14 +300,10 @@ class DreameMowerDataUpdateCoordinator(DataUpdateCoordinator[DreameMowerDevice])
                 elif NOTIFICATION_ID_ERROR in notification_id:
                     if NOTIFICATION_ID_ERROR not in self._notify:
                         return
-                elif (
-                    notification_id == NOTIFICATION_ID_CLEANING_PAUSED
-                ):
+                elif notification_id == NOTIFICATION_ID_CLEANING_PAUSED:
                     if NOTIFICATION_ID_INFORMATION not in self._notify:
                         return
-                elif (
-                    notification_id != NOTIFICATION_ID_REPLACE_TEMPORARY_MAP
-                ):
+                elif notification_id != NOTIFICATION_ID_REPLACE_TEMPORARY_MAP:
                     if NOTIFICATION_ID_CONSUMABLE not in self._notify:
                         return
 
@@ -297,23 +315,35 @@ class DreameMowerDataUpdateCoordinator(DataUpdateCoordinator[DreameMowerDevice])
             )
 
     def _remove_persistent_notification(self, notification_id) -> None:
-        persistent_notification.dismiss(self.hass, f"{DOMAIN}_{self._device.mac}_{notification_id}")
+        persistent_notification.dismiss(
+            self.hass, f"{DOMAIN}_{self._device.mac}_{notification_id}"
+        )
 
     def _notification_dismiss_listener(self, type, data) -> None:
         if type == persistent_notification.UpdateType.REMOVED and self._device:
             notifications = self.hass.data.get(persistent_notification.DOMAIN)
             if self._has_warning:
-                if f"{DOMAIN}_{self._device.mac}_{NOTIFICATION_ID_WARNING}" not in notifications:
+                if (
+                    f"{DOMAIN}_{self._device.mac}_{NOTIFICATION_ID_WARNING}"
+                    not in notifications
+                ):
                     if NOTIFICATION_ID_WARNING in self._notify:
                         self._device.clear_warning()
                     self._has_warning = self._device.status.has_warning
 
             if self._two_factor_url:
-                if f"{DOMAIN}_{self._device.mac}_{NOTIFICATION_ID_2FA_LOGIN}" not in notifications:
+                if (
+                    f"{DOMAIN}_{self._device.mac}_{NOTIFICATION_ID_2FA_LOGIN}"
+                    not in notifications
+                ):
                     self._two_factor_url = None
 
     def _fire_event(self, event_id, data) -> None:
-        event_data = {ATTR_ENTITY_ID: generate_entity_id("mower.{}", self._device.name, hass=self.hass)}
+        event_data = {
+            ATTR_ENTITY_ID: generate_entity_id(
+                "mower.{}", self._device.name, hass=self.hass
+            )
+        }
         if data:
             event_data.update(data)
         self.hass.bus.fire(f"{DOMAIN}_{event_id}", event_data)

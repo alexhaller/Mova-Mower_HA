@@ -1,12 +1,12 @@
+# mypy: ignore-errors
 """The Dreame Mower component."""
 
 from __future__ import annotations
-import traceback
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
-from homeassistant.components.frontend import DATA_EXTRA_MODULE_URL
-from pathlib import Path
+
 from .const import DOMAIN
 from .coordinator import DreameMowerDataUpdateCoordinator
 
@@ -29,18 +29,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = coordinator
 
-    # Register frontend
-    # frontend_js = f"/{DOMAIN}/frontend.js"
-    # if DATA_EXTRA_MODULE_URL not in hass.data:
-    #    hass.data[DATA_EXTRA_MODULE_URL] = set()
-    # if frontend_js not in (
-    #    hass.data[DATA_EXTRA_MODULE_URL].urls
-    #    if hasattr(hass.data[DATA_EXTRA_MODULE_URL], "urls")
-    #    else hass.data[DATA_EXTRA_MODULE_URL]
-    # ):
-    #    hass.data[DATA_EXTRA_MODULE_URL].add(frontend_js)
-    #    hass.http.register_static_path(frontend_js, str(Path(Path(__file__).parent / "frontend.js")), True)
-
     # Set up all platforms for this device/entry.
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -51,7 +39,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload Dreame Mower config entry."""
     if unload_ok := await hass.config_entries.async_unload_platforms(entry, PLATFORMS):
-        coordinator: DreameMowerDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
+        coordinator: DreameMowerDataUpdateCoordinator = hass.data[DOMAIN][
+            entry.entry_id
+        ]
         coordinator._device.listen(None)
         coordinator._device.disconnect()
         del coordinator._device

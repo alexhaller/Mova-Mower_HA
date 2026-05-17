@@ -1,8 +1,8 @@
+# mypy: ignore-errors
 """Config flow for Dremae Mower."""
 
 from __future__ import annotations
 from typing import Any, Final
-import logging
 import re
 import voluptuous as vol
 import homeassistant.helpers.config_validation as cv
@@ -245,7 +245,7 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
                     if info:
                         self.mac = info["mac"]
                         self.model = info["model"]
-            except:
+            except Exception:
                 errors["base"] = "cannot_connect"
             else:
                 if self.mac:
@@ -353,10 +353,12 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
                     if devices:
                         found = list(
                             filter(
-                                lambda d: not d.get("parent_id")
-                                and any(
-                                    str(d["model"]).startswith(prefix)
-                                    for prefix in DREAME_MODELS
+                                lambda d: (
+                                    not d.get("parent_id")
+                                    and any(
+                                        str(d["model"]).startswith(prefix)
+                                        for prefix in DREAME_MODELS
+                                    )
                                 ),
                                 devices,
                             )

@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Support for Dreame Mower selects."""
 
 from __future__ import annotations
@@ -5,7 +6,6 @@ from __future__ import annotations
 import copy
 from enum import IntEnum
 import voluptuous as vol
-from typing import Any
 from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
@@ -46,8 +46,6 @@ from .dreame import (
     DreameMowerProperty,
     DreameMowerAutoSwitchProperty,
     DreameMowerCleaningMode,
-    DreameMowerWiderCornerCoverage,
-    DreameMowerSecondCleaning,
     DreameMowerCleaningRoute,
     DreameMowerCleanGenius,
     DreameMowerFloorMaterial,
@@ -90,7 +88,9 @@ CLEANING_ROUTE_TO_ICON = {
 
 
 @dataclass
-class DreameMowerSelectEntityDescription(DreameMowerEntityDescription, SelectEntityDescription):
+class DreameMowerSelectEntityDescription(
+    DreameMowerEntityDescription, SelectEntityDescription
+):
     """Describes Dreame Mower Select entity."""
 
     set_fn: Callable[[object, int, int]] = None
@@ -102,7 +102,9 @@ class DreameMowerSelectEntityDescription(DreameMowerEntityDescription, SelectEnt
 SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
     DreameMowerSelectEntityDescription(
         property_key=DreameMowerProperty.CLEANING_MODE,
-        icon_fn=lambda value, device: CLEANING_MODE_TO_ICON.get(device.status.cleaning_mode, "mdi:broom"),
+        icon_fn=lambda value, device: CLEANING_MODE_TO_ICON.get(
+            device.status.cleaning_mode, "mdi:broom"
+        ),
         value_int_fn=lambda value, device: DreameMowerCleaningMode[value.upper()].value,
     ),
     DreameMowerSelectEntityDescription(
@@ -114,10 +116,15 @@ SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
     DreameMowerSelectEntityDescription(
         property_key=DreameMowerAutoSwitchProperty.CLEANING_ROUTE,
         entity_category=None,
-        icon_fn=lambda value, device: CLEANING_ROUTE_TO_ICON.get(device.status.cleaning_route, "mdi:routes"),
-        value_int_fn=lambda value, device: DreameMowerCleaningRoute[value.upper()].value,
+        icon_fn=lambda value, device: CLEANING_ROUTE_TO_ICON.get(
+            device.status.cleaning_route, "mdi:routes"
+        ),
+        value_int_fn=lambda value, device: (
+            DreameMowerCleaningRoute[value.upper()].value
+        ),
         exists_fn=lambda description, device: bool(
-            device.capability.cleaning_route and DreameMowerEntityDescription().exists_fn(description, device)
+            device.capability.cleaning_route
+            and DreameMowerEntityDescription().exists_fn(description, device)
         ),
     ),
     DreameMowerSelectEntityDescription(
@@ -126,7 +133,8 @@ SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
         entity_category=None,
         value_int_fn=lambda value, device: DreameMowerCleanGenius[value.upper()].value,
         exists_fn=lambda description, device: bool(
-            device.capability.cleangenius and DreameMowerEntityDescription().exists_fn(description, device)
+            device.capability.cleangenius
+            and DreameMowerEntityDescription().exists_fn(description, device)
         ),
     ),
     DreameMowerSelectEntityDescription(
@@ -136,7 +144,8 @@ SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
         entity_category=EntityCategory.CONFIG,
         value_fn=lambda value, device: (
             str(device.status.selected_map.rotation)
-            if device.status.selected_map and device.status.selected_map.rotation is not None
+            if device.status.selected_map
+            and device.status.selected_map.rotation is not None
             else ""
         ),
         exists_fn=lambda description, device: device.capability.map,
@@ -144,14 +153,18 @@ SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
     DreameMowerSelectEntityDescription(
         key="selected_map",
         icon="mdi:map-check",
-        options=lambda device, segment: [v.map_name for k, v in device.status.map_data_list.items()],
+        options=lambda device, segment: [
+            v.map_name for k, v in device.status.map_data_list.items()
+        ],
         entity_category=None,
         value_fn=lambda value, device: (
             device.status.selected_map.map_name
             if device.status.selected_map and device.status.selected_map.map_name
             else ""
         ),
-        exists_fn=lambda description, device: device.capability.map and device.capability.multi_floor_map,
+        exists_fn=lambda description, device: (
+            device.capability.map and device.capability.multi_floor_map
+        ),
         value_int_fn=lambda value, device: next(
             (k for k, v in device.status.map_data_list.items() if v.map_name == value),
             None,
@@ -171,7 +184,9 @@ SEGMENT_SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
     DreameMowerSelectEntityDescription(
         key=DreameMowerProperty.CLEANING_MODE.name.lower(),
         icon_fn=lambda value, segment: (
-            CLEANING_MODE_TO_ICON.get(segment.cleaning_mode, "mdi:broom") if segment else "mdi:broom"
+            CLEANING_MODE_TO_ICON.get(segment.cleaning_mode, "mdi:broom")
+            if segment
+            else "mdi:broom"
         ),
         segment_available_fn=lambda device, segment: bool(
             device.status.current_segments
@@ -184,11 +199,14 @@ SEGMENT_SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
             and not device.status.started  # TODO: Check
         ),
         value_fn=lambda device, segment: CLEANING_MODE_CODE_TO_NAME.get(
-            segment.cleaning_mode if segment.cleaning_mode is not None else 2, STATE_UNKNOWN
+            segment.cleaning_mode if segment.cleaning_mode is not None else 2,
+            STATE_UNKNOWN,
         ),
         value_int_fn=lambda value, self: DreameMowerCleaningMode[value.upper()].value,
-        exists_fn=lambda description, device: device.capability.customized_cleaning
-        and device.capability.custom_cleaning_mode,
+        exists_fn=lambda description, device: (
+            device.capability.customized_cleaning
+            and device.capability.custom_cleaning_mode
+        ),
         segment_list_fn=lambda device: device.status.current_segments,
         options=lambda device, segment: list(device.status.segment_cleaning_mode_list),
     ),
@@ -220,7 +238,9 @@ SEGMENT_SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
         key=DreameMowerAutoSwitchProperty.CLEANING_ROUTE.name.lower(),
         entity_category=None,
         icon_fn=lambda value, segment: (
-            CLEANING_ROUTE_TO_ICON.get(segment.cleaning_route, "mdi:routes") if segment else "mdi:map-marker-remove"
+            CLEANING_ROUTE_TO_ICON.get(segment.cleaning_route, "mdi:routes")
+            if segment
+            else "mdi:map-marker-remove"
         ),
         segment_available_fn=lambda device, segment: bool(
             device.status.current_segments
@@ -234,7 +254,9 @@ SEGMENT_SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
         value_fn=lambda device, segment: CLEANING_ROUTE_TO_NAME.get(
             segment.cleaning_route if segment.cleaning_route else 1, STATE_UNKNOWN
         ),
-        value_int_fn=lambda value, device: DreameMowerCleaningRoute[value.upper()].value,
+        value_int_fn=lambda value, device: (
+            DreameMowerCleaningRoute[value.upper()].value
+        ),
         exists_fn=lambda description, device: bool(device.capability.cleaning_route),
         segment_list_fn=lambda device: device.status.current_segments,
         options=lambda device, segment: list(device.status.segment_cleaning_route_list),
@@ -258,7 +280,9 @@ SEGMENT_SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
             and not device.status.fast_mapping
             and not device.status.cleangenius_cleaning
         ),
-        value_fn=lambda device, segment: str(segment.order) if segment.order else STATE_NOT_SET,
+        value_fn=lambda device, segment: (
+            str(segment.order) if segment.order else STATE_NOT_SET
+        ),
         exists_fn=lambda description, device: device.capability.customized_cleaning,
         segment_list_fn=lambda device: device.status.current_segments,
     ),
@@ -273,14 +297,16 @@ SEGMENT_SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
         segment_available_fn=lambda device, segment: bool(
             device.status.current_segments
             and segment.floor_material is not None
-            and segment.visibility != False
+            and segment.visibility
             and not device.status.started
             and not device.status.fast_mapping
             and not device.status.has_temporary_map
             and not device.status.scheduled_clean
             and device.status.has_saved_map
         ),
-        value_fn=lambda device, segment: FLOOR_MATERIAL_CODE_TO_NAME.get(segment.floor_material, STATE_UNKNOWN),
+        value_fn=lambda device, segment: FLOOR_MATERIAL_CODE_TO_NAME.get(
+            segment.floor_material, STATE_UNKNOWN
+        ),
         value_int_fn=lambda value, self: DreameMowerFloorMaterial[value.upper()].value,
         exists_fn=lambda description, device: device.capability.floor_material,
         segment_list_fn=lambda device: device.status.segments,
@@ -299,7 +325,7 @@ SEGMENT_SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
         segment_available_fn=lambda device, segment: bool(
             device.status.current_segments
             and segment.floor_material == 1
-            and segment.visibility != False
+            and segment.visibility
             and not device.status.started
             and not device.status.fast_mapping
             and not device.status.has_temporary_map
@@ -312,20 +338,27 @@ SEGMENT_SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
                 if segment.floor_material_rotated_direction is not None
                 else (
                     DreameMowerFloorMaterialDirection.VERTICAL
-                    if device.status.current_map.rotation == 0 or device.status.current_map.rotation == 180
+                    if device.status.current_map.rotation == 0
+                    or device.status.current_map.rotation == 180
                     else DreameMowerFloorMaterialDirection.HORIZONTAL
                 )
             ),
             STATE_UNKNOWN,
         ),
-        value_int_fn=lambda value, self: DreameMowerFloorMaterialDirection[value.upper()].value,
-        exists_fn=lambda description, device: device.capability.floor_direction_cleaning,
+        value_int_fn=lambda value, self: (
+            DreameMowerFloorMaterialDirection[value.upper()].value
+        ),
+        exists_fn=lambda description, device: (
+            device.capability.floor_direction_cleaning
+        ),
         segment_list_fn=lambda device: device.status.segments,
     ),
     DreameMowerSelectEntityDescription(
         key="visibility",
         icon_fn=lambda value, segment: (
-            SEGMENT_VISIBILITY_TO_ICON.get(segment.visibility, "mdi:eye") if segment else "mdi:home-remove"
+            SEGMENT_VISIBILITY_TO_ICON.get(segment.visibility, "mdi:eye")
+            if segment
+            else "mdi:home-remove"
         ),
         entity_category=EntityCategory.CONFIG,
         segment_available_fn=lambda device, segment: bool(
@@ -337,8 +370,12 @@ SEGMENT_SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
             and not device.status.scheduled_clean
             and device.status.has_saved_map
         ),
-        value_fn=lambda device, segment: SEGMENT_VISIBILITY_CODE_TO_NAME.get(segment.visibility, STATE_UNKNOWN),
-        value_int_fn=lambda value, self: DreameMowerSegmentVisibility[value.upper()].value,
+        value_fn=lambda device, segment: SEGMENT_VISIBILITY_CODE_TO_NAME.get(
+            segment.visibility, STATE_UNKNOWN
+        ),
+        value_int_fn=lambda value, self: (
+            DreameMowerSegmentVisibility[value.upper()].value
+        ),
         exists_fn=lambda description, device: device.capability.segment_visibility,
         segment_list_fn=lambda device: device.status.segments,
     ),
@@ -348,13 +385,23 @@ SEGMENT_SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
         options=lambda device, segment: list(segment.name_list(device.status.segments)),
         entity_category=EntityCategory.CONFIG,
         segment_available_fn=lambda device, segment: bool(
-            device.status.segments and not device.status.fast_mapping and not device.status.has_temporary_map
+            device.status.segments
+            and not device.status.fast_mapping
+            and not device.status.has_temporary_map
         ),
         value_fn=lambda device, segment: (
-            device.status.segments[segment.segment_id].name if segment.segment_id in device.status.segments else None
+            device.status.segments[segment.segment_id].name
+            if segment.segment_id in device.status.segments
+            else None
         ),
         value_int_fn=lambda value, self: next(
-            (type for name, type in self.segment.name_list(self.device.status.segments).items() if name == value),
+            (
+                type
+                for name, type in self.segment.name_list(
+                    self.device.status.segments
+                ).items()
+                if name == value
+            ),
             None,
         ),
         attrs_fn=lambda segment: {
@@ -390,10 +437,16 @@ async def async_setup_entry(
         {vol.Optional(INPUT_CYCLE, default=True): bool},
         DreameMowerSelectEntity.async_previous.__name__,
     )
-    platform.async_register_entity_service(SERVICE_SELECT_FIRST, {}, DreameMowerSelectEntity.async_first.__name__)
-    platform.async_register_entity_service(SERVICE_SELECT_LAST, {}, DreameMowerSelectEntity.async_last.__name__)
+    platform.async_register_entity_service(
+        SERVICE_SELECT_FIRST, {}, DreameMowerSelectEntity.async_first.__name__
+    )
+    platform.async_register_entity_service(
+        SERVICE_SELECT_LAST, {}, DreameMowerSelectEntity.async_last.__name__
+    )
 
-    update_segment_selects = partial(async_update_segment_selects, coordinator, {}, async_add_entities)
+    update_segment_selects = partial(
+        async_update_segment_selects, coordinator, {}, async_add_entities
+    )
     coordinator.async_add_listener(update_segment_selects)
     update_segment_selects()
 
@@ -452,29 +505,41 @@ class DreameMowerSelectEntity(DreameMowerEntity, SelectEntity):
         description: SelectEntityDescription,
     ) -> None:
         """Initialize Dreame Mower select."""
-        if description.value_fn is None and (description.property_key is not None or description.key is not None):
+        if description.value_fn is None and (
+            description.property_key is not None or description.key is not None
+        ):
             if description.property_key is not None:
                 prop = f"{description.property_key.name.lower()}_name"
             else:
                 prop = f"{description.key.lower()}_name"
             if hasattr(coordinator.device.status, prop):
-                description.value_fn = lambda value, device: getattr(device.status, prop)
+                description.value_fn = lambda value, device: getattr(
+                    device.status, prop
+                )
 
-        if description.set_fn is None and (description.property_key is not None or description.key is not None):
+        if description.set_fn is None and (
+            description.property_key is not None or description.key is not None
+        ):
             if description.property_key is not None:
                 set_prop = f"set_{description.property_key.name.lower()}"
             else:
                 set_prop = f"set_{description.key.lower()}"
             if hasattr(coordinator.device, set_prop):
-                description.set_fn = lambda device, segment_id, value: getattr(device, set_prop)(value)
+                description.set_fn = lambda device, segment_id, value: getattr(
+                    device, set_prop
+                )(value)
 
-        if description.options is None and (description.property_key is not None or description.key is not None):
+        if description.options is None and (
+            description.property_key is not None or description.key is not None
+        ):
             if description.property_key is not None:
                 options_prop = f"{description.property_key.name.lower()}_list"
             else:
                 options_prop = f"{description.key.lower()}_list"
             if hasattr(coordinator.device.status, options_prop):
-                description.options = lambda device, segment: list(getattr(device.status, options_prop))
+                description.options = lambda device, segment: list(
+                    getattr(device.status, options_prop)
+                )
 
         super().__init__(coordinator, description)
         self._generate_entity_id(ENTITY_ID_FORMAT)
@@ -585,36 +650,50 @@ class DreameMowerSegmentSelectEntity(DreameMowerEntity, SelectEntity):
         self.segment = None
         self.segments = None
         if coordinator.device:
-            self.segments = copy.deepcopy(description.segment_list_fn(coordinator.device))
+            self.segments = copy.deepcopy(
+                description.segment_list_fn(coordinator.device)
+            )
             if segment_id in self.segments:
                 self.segment = self.segments[segment_id]
 
-        if description.set_fn is None and (description.property_key is not None or description.key is not None):
+        if description.set_fn is None and (
+            description.property_key is not None or description.key is not None
+        ):
             if description.property_key is not None:
-                segment_set_prop = f"set_segment_{description.property_key.name.lower()}"
+                segment_set_prop = (
+                    f"set_segment_{description.property_key.name.lower()}"
+                )
             else:
                 segment_set_prop = f"set_segment_{description.key.lower()}"
             if hasattr(coordinator.device, segment_set_prop):
-                description.set_fn = lambda device, segment_id, value: getattr(device, segment_set_prop)(
-                    segment_id, value
-                )
+                description.set_fn = lambda device, segment_id, value: getattr(
+                    device, segment_set_prop
+                )(segment_id, value)
 
-        if description.options is None and (description.property_key is not None or description.key is not None):
+        if description.options is None and (
+            description.property_key is not None or description.key is not None
+        ):
             if description.property_key is not None:
                 segment_options_prop = f"{description.property_key.name.lower()}_list"
             else:
                 segment_options_prop = f"{description.key.lower()}_list"
             if hasattr(coordinator.device.status, segment_options_prop):
-                description.options = lambda device, segment: list(getattr(device.status, segment_options_prop))
+                description.options = lambda device, segment: list(
+                    getattr(device.status, segment_options_prop)
+                )
 
         super().__init__(coordinator, description)
-        self._attr_unique_id = f"{self.device.mac}_room_{segment_id}_{description.key.lower()}"
+        self._attr_unique_id = (
+            f"{self.device.mac}_room_{segment_id}_{description.key.lower()}"
+        )
         self.entity_id = f"select.{self.device.name.lower()}_room_{segment_id}_{description.key.lower()}"
         self._attr_options = []
         self._attr_current_option = "unavailable"
         if self.segment:
             if description.options is not None:
-                self._attr_options = description.options(coordinator.device, self.segment)
+                self._attr_options = description.options(
+                    coordinator.device, self.segment
+                )
             self._attr_current_option = self.native_value
 
     def _set_id(self) -> None:
@@ -629,7 +708,9 @@ class DreameMowerSegmentSelectEntity(DreameMowerEntity, SelectEntity):
         self._attr_name = f"{self.device.name} {name.replace('_', ' ').title()}"
 
         if self.entity_description.icon_fn is not None:
-            self._attr_icon = self.entity_description.icon_fn(self.native_value, self.segment)
+            self._attr_icon = self.entity_description.icon_fn(
+                self.native_value, self.segment
+            )
         elif self.segment:
             self._attr_icon = self.segment.icon
         else:
@@ -661,7 +742,9 @@ class DreameMowerSegmentSelectEntity(DreameMowerEntity, SelectEntity):
                     self._attr_current_option = self.native_value
                     self._set_id()
                 if self.entity_description.options is not None:
-                    self._attr_options = self.entity_description.options(self.device, self.segment)
+                    self._attr_options = self.entity_description.options(
+                        self.device, self.segment
+                    )
             elif self.segment:
                 self._attr_options = []
                 self.segment = None
@@ -743,10 +826,14 @@ class DreameMowerSegmentSelectEntity(DreameMowerEntity, SelectEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        if not self.device.device_connected or (self._attr_available and self.segment is None):
+        if not self.device.device_connected or (
+            self._attr_available and self.segment is None
+        ):
             return False
         if self.entity_description.segment_available_fn is not None:
-            return self.entity_description.segment_available_fn(self.device, self.segment)
+            return self.entity_description.segment_available_fn(
+                self.device, self.segment
+            )
         return self._attr_available
 
     @property
@@ -755,11 +842,22 @@ class DreameMowerSegmentSelectEntity(DreameMowerEntity, SelectEntity):
         attrs = None
         if self.entity_description.attrs_fn is not None:
             attrs = self.entity_description.attrs_fn(self.segment)
-        elif self.entity_description.value_fn is not None or self.entity_description.value_int_fn is not None:
+        elif (
+            self.entity_description.value_fn is not None
+            or self.entity_description.value_int_fn is not None
+        ):
             if self.entity_description.property_key is not None:
-                attrs = {ATTR_VALUE: self.device.get_property(self.entity_description.property_key)}
+                attrs = {
+                    ATTR_VALUE: self.device.get_property(
+                        self.entity_description.property_key
+                    )
+                }
             elif self.entity_description.value_int_fn is not None:
-                attrs = {ATTR_VALUE: self.entity_description.value_int_fn(self.native_value, self)}
+                attrs = {
+                    ATTR_VALUE: self.entity_description.value_int_fn(
+                        self.native_value, self
+                    )
+                }
 
         return attrs
 

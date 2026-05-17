@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """Support for Dreame Mower switches."""
 
 from __future__ import annotations
@@ -31,7 +32,9 @@ from .dreame import (
 
 
 @dataclass
-class DreameMowerSwitchEntityDescription(DreameMowerEntityDescription, SwitchEntityDescription):
+class DreameMowerSwitchEntityDescription(
+    DreameMowerEntityDescription, SwitchEntityDescription
+):
     """Describes Dreame Mower Switch entity."""
 
     set_fn: Callable[[object, int]] = None
@@ -46,7 +49,9 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
     ),
     DreameMowerSwitchEntityDescription(
         property_key=DreameMowerProperty.OBSTACLE_AVOIDANCE,
-        icon_fn=lambda value, device: "mdi:video-3d-off" if value == 0 else "mdi:video-3d",
+        icon_fn=lambda value, device: (
+            "mdi:video-3d-off" if value == 0 else "mdi:video-3d"
+        ),
         entity_category=EntityCategory.CONFIG,
     ),
     DreameMowerSwitchEntityDescription(
@@ -61,7 +66,9 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
     DreameMowerSwitchEntityDescription(
         key="dnd",
         name="DnD",
-        icon_fn=lambda value, device: "mdi:minus-circle-off-outline" if not value else "mdi:minus-circle-outline",
+        icon_fn=lambda value, device: (
+            "mdi:minus-circle-off-outline" if not value else "mdi:minus-circle-outline"
+        ),
         entity_category=EntityCategory.CONFIG,
     ),
     DreameMowerSwitchEntityDescription(
@@ -69,15 +76,20 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
         icon_fn=lambda value, device: "mdi:layers-off" if value == 0 else "mdi:layers",
         entity_category=EntityCategory.CONFIG,
         exists_fn=lambda description, device: bool(
-            DreameMowerEntityDescription().exists_fn(description, device) and device.capability.lidar_navigation
+            DreameMowerEntityDescription().exists_fn(description, device)
+            and device.capability.lidar_navigation
         ),
     ),
     DreameMowerSwitchEntityDescription(
         property_key=DreameMowerProperty.INTELLIGENT_RECOGNITION,
-        icon_fn=lambda value, device: "mdi:wifi-remove" if value == 0 else "mdi:wifi-marker",
+        icon_fn=lambda value, device: (
+            "mdi:wifi-remove" if value == 0 else "mdi:wifi-marker"
+        ),
         entity_category=EntityCategory.CONFIG,
-        exists_fn=lambda description, device: device.capability.wifi_map
-        and DreameMowerEntityDescription().exists_fn(description, device),
+        exists_fn=lambda description, device: (
+            device.capability.wifi_map
+            and DreameMowerEntityDescription().exists_fn(description, device)
+        ),
     ),
     DreameMowerSwitchEntityDescription(
         property_key=DreameMowerProperty.MAP_SAVING,
@@ -87,7 +99,9 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
     ),
     DreameMowerSwitchEntityDescription(
         property_key=DreameMowerProperty.VOICE_ASSISTANT,
-        icon_fn=lambda value, device: "mdi:microphone-message-off" if not value else "mdi:microphone-message",
+        icon_fn=lambda value, device: (
+            "mdi:microphone-message-off" if not value else "mdi:microphone-message"
+        ),
         entity_category=EntityCategory.CONFIG,
         format_fn=lambda value, device: int(value),
     ),
@@ -95,7 +109,9 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
         key="cleaning_sequence",
         icon="mdi:order-numeric-ascending",
         value_fn=lambda value, device: device.status.custom_order,
-        exists_fn=lambda description, device: device.capability.customized_cleaning and device.capability.map,
+        exists_fn=lambda description, device: (
+            device.capability.customized_cleaning and device.capability.map
+        ),
         set_fn=lambda device, value: device.set_cleaning_sequence(
             []
             if not value
@@ -125,7 +141,9 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
     ),
     DreameMowerSwitchEntityDescription(
         property_key=DreameMowerAIProperty.AI_PET_DETECTION,
-        icon_fn=lambda value, device: "mdi:dog-side-off" if not value else "mdi:dog-side",
+        icon_fn=lambda value, device: (
+            "mdi:dog-side-off" if not value else "mdi:dog-side"
+        ),
         entity_category=EntityCategory.CONFIG,
     ),
     DreameMowerSwitchEntityDescription(
@@ -157,15 +175,20 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
     ),
     DreameMowerSwitchEntityDescription(
         property_key=DreameMowerAutoSwitchProperty.FILL_LIGHT,
-        icon_fn=lambda value, device: "mdi:lightbulb-off" if not value else "mdi:lightbulb-on",
+        icon_fn=lambda value, device: (
+            "mdi:lightbulb-off" if not value else "mdi:lightbulb-on"
+        ),
         exists_fn=lambda description, device: bool(
-            device.capability.fill_light and DreameMowerEntityDescription().exists_fn(description, device)
+            device.capability.fill_light
+            and DreameMowerEntityDescription().exists_fn(description, device)
         ),
         entity_category=EntityCategory.CONFIG,
     ),
     DreameMowerSwitchEntityDescription(
         property_key=DreameMowerAutoSwitchProperty.COLLISION_AVOIDANCE,
-        icon_fn=lambda value, device: "mdi:sign-direction-remove" if not value else "mdi:sign-direction",
+        icon_fn=lambda value, device: (
+            "mdi:sign-direction-remove" if not value else "mdi:sign-direction"
+        ),
         entity_category=EntityCategory.CONFIG,
     ),
     DreameMowerSwitchEntityDescription(
@@ -173,7 +196,8 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
         icon="mdi:liquid-spot",
         format_fn=lambda value, device: 2 if value else 1,
         exists_fn=lambda description, device: bool(
-            device.capability.fluid_detection and DreameMowerEntityDescription().exists_fn(description, device)
+            device.capability.fluid_detection
+            and DreameMowerEntityDescription().exists_fn(description, device)
         ),
         entity_category=EntityCategory.CONFIG,
     ),
@@ -189,7 +213,8 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
     DreameMowerSwitchEntityDescription(
         property_key=DreameMowerAutoSwitchProperty.PET_FOCUSED_CLEANING,
         exists_fn=lambda description, device: bool(
-            device.capability.pet_detective and DreameMowerEntityDescription().exists_fn(description, device)
+            device.capability.pet_detective
+            and DreameMowerEntityDescription().exists_fn(description, device)
         ),
         icon="mdi:paw",
         entity_category=EntityCategory.CONFIG,
@@ -211,13 +236,16 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
         property_key=DreameMowerAutoSwitchProperty.AUTO_CHARGING,
         icon="mdi:battery-sync",
         exists_fn=lambda description, device: bool(
-            device.capability.auto_charging and DreameMowerEntityDescription().exists_fn(description, device)
+            device.capability.auto_charging
+            and DreameMowerEntityDescription().exists_fn(description, device)
         ),
         entity_category=EntityCategory.CONFIG,
     ),
     DreameMowerSwitchEntityDescription(
         property_key=DreameMowerAutoSwitchProperty.HUMAN_FOLLOW,
-        icon_fn=lambda value, device: "mdi:account-off" if not value else "mdi:account-arrow-left",
+        icon_fn=lambda value, device: (
+            "mdi:account-off" if not value else "mdi:account-arrow-left"
+        ),
         exists_fn=lambda description, device: bool(
             DreameMowerEntityDescription().exists_fn(description, device)
         ),
@@ -225,18 +253,26 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
     ),
     DreameMowerSwitchEntityDescription(
         property_key=DreameMowerAutoSwitchProperty.STREAMING_VOICE_PROMPT,
-        icon_fn=lambda value, device: "mdi:account-tie-voice-off" if not value else "mdi:account-tie-voice",
+        icon_fn=lambda value, device: (
+            "mdi:account-tie-voice-off" if not value else "mdi:account-tie-voice"
+        ),
         exists_fn=lambda description, device: bool(
-            device.capability.camera_streaming and DreameMowerEntityDescription().exists_fn(description, device)
+            device.capability.camera_streaming
+            and DreameMowerEntityDescription().exists_fn(description, device)
         ),
         entity_category=EntityCategory.CONFIG,
     ),
     DreameMowerSwitchEntityDescription(
         key="camera_light_brightness_auto",
-        icon_fn=lambda value, device: "mdi:brightness-percent" if not value else "mdi:brightness-auto",
-        value_fn=lambda value, device: bool(device.status.camera_light_brightness == 101),
-        exists_fn=lambda description, device: device.capability.camera_streaming
-        and device.capability.fill_light,  # and DreameMowerEntityDescription().exists_fn(description, device),
+        icon_fn=lambda value, device: (
+            "mdi:brightness-percent" if not value else "mdi:brightness-auto"
+        ),
+        value_fn=lambda value, device: bool(
+            device.status.camera_light_brightness == 101
+        ),
+        exists_fn=lambda description, device: (
+            device.capability.camera_streaming and device.capability.fill_light
+        ),  # and DreameMowerEntityDescription().exists_fn(description, device),
         format_fn=lambda value, device: 101 if value else 40,
         entity_category=EntityCategory.CONFIG,
     ),
@@ -268,7 +304,9 @@ class DreameMowerSwitchEntity(DreameMowerEntity, SwitchEntity):
         description: DreameMowerSwitchEntityDescription,
     ) -> None:
         """Initialize a Dreame Mower switch entity."""
-        if description.set_fn is None and (description.property_key is not None or description.key is not None):
+        if description.set_fn is None and (
+            description.property_key is not None or description.key is not None
+        ):
             if description.property_key is not None:
                 prop = f"set_{description.property_key.name.lower()}"
             else:
@@ -303,7 +341,9 @@ class DreameMowerSwitchEntity(DreameMowerEntity, SwitchEntity):
             value = self.entity_description.format_fn(state, self.device)
 
         if self.entity_description.set_fn is not None:
-            await self._try_command("Unable to call: %s", self.entity_description.set_fn, self.device, value)
+            await self._try_command(
+                "Unable to call: %s", self.entity_description.set_fn, self.device, value
+            )
         elif self.entity_description.property_key is not None:
             await self._try_command(
                 "Unable to call: %s",

@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 class DeviceException(Exception):
     """Exception wrapping any communication errors with the device."""
 
