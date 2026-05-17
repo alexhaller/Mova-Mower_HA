@@ -1,3 +1,9 @@
+## [1.0.4](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.3...v1.0.4) (2026-05-17)
+
+### Bug Fixes
+
+* call Camera.__init__() explicitly to initialize _webrtc_provider ([0c62945](https://github.com/alexhaller/Mova-Mower_HA/commit/0c6294516228689191effd94066b57154b743076))
+
 ## [1.0.3](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.2...v1.0.3) (2026-05-17)
 
 ### Bug Fixes
