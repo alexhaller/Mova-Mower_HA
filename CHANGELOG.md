@@ -1,3 +1,9 @@
+## [1.0.5](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.4...v1.0.5) (2026-05-17)
+
+### Bug Fixes
+
+* make quickjs import lazy to prevent ModuleNotFoundError on startup ([2019727](https://github.com/alexhaller/Mova-Mower_HA/commit/20197277640583700b6e35519d22649c1cf7e74d))
+
 ## [1.0.4](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.3...v1.0.4) (2026-05-17)
 
 ### Bug Fixes
