@@ -1,3 +1,9 @@
+## [1.0.17](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.16...v1.0.17) (2026-05-18)
+
+### Bug Fixes
+
+* normalize map action response from list to dict for Mova cloud ([fea9353](https://github.com/alexhaller/Mova-Mower_HA/commit/fea93530c8316c80f8565699e417a7d5683c9c39))
+
 ## [1.0.16](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.15...v1.0.16) (2026-05-18)
 
 ### Bug Fixes
