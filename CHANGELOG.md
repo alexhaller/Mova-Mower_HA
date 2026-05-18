@@ -1,3 +1,9 @@
+## [1.0.12](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.11...v1.0.12) (2026-05-18)
+
+### Bug Fixes
+
+* remove manual config_entry assignment in OptionsFlow ([d385037](https://github.com/alexhaller/Mova-Mower_HA/commit/d38503767bd076c9534e06aed35c3161082f9456))
+
 ## [1.0.11](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.10...v1.0.11) (2026-05-18)
 
 ### Bug Fixes
