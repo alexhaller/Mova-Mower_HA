@@ -128,7 +128,7 @@ class DreameMowerOptionsFlowHandler(OptionsFlow):
         )
 
 
-class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
+class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-arg]
     """Handle config flow for an Dreame Mower device."""
 
     VERSION = 1
