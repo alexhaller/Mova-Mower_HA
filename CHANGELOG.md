@@ -1,3 +1,9 @@
+## [1.0.11](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.10...v1.0.11) (2026-05-18)
+
+### Bug Fixes
+
+* trigger release for capability diagnostic logging ([04e72c1](https://github.com/alexhaller/Mova-Mower_HA/commit/04e72c164165316b6141a6a8490e067967ab668e))
+
 ## [1.0.10](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.9...v1.0.10) (2026-05-18)
 
 ### Bug Fixes
