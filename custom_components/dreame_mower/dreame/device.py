@@ -367,7 +367,7 @@ class DreameMowerDevice:
     def _handle_properties(self, properties) -> bool:
         changed = False
         callbacks = []
-        for prop in properties:
+        for prop in properties or []:
             if not isinstance(prop, dict):
                 continue
             did = int(prop["did"])
