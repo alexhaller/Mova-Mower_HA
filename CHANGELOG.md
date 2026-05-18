@@ -1,3 +1,9 @@
+## [1.0.13](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.12...v1.0.13) (2026-05-18)
+
+### Bug Fixes
+
+* fully type config_flow.py and remove mypy: ignore-errors ([f4ce5ef](https://github.com/alexhaller/Mova-Mower_HA/commit/f4ce5ef12049351525531ab0bd8be4ac977c371d))
+
 ## [1.0.12](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.11...v1.0.12) (2026-05-18)
 
 ### Bug Fixes
