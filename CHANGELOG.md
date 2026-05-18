@@ -1,3 +1,9 @@
+## [1.0.16](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.15...v1.0.16) (2026-05-18)
+
+### Bug Fixes
+
+* suppress mypy call-arg false positive on ConfigFlow domain= kwarg ([f66d0c9](https://github.com/alexhaller/Mova-Mower_HA/commit/f66d0c986dd3838653783b58fed4b580d19565e2))
+
 ## [1.0.15](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.14...v1.0.15) (2026-05-18)
 
 ### Bug Fixes
