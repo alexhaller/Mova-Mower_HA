@@ -1,3 +1,9 @@
+## [1.0.9](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.8...v1.0.9) (2026-05-18)
+
+### Bug Fixes
+
+* initialize _access_token_update_counter before Camera.__init__() ([bddba5c](https://github.com/alexhaller/Mova-Mower_HA/commit/bddba5ce65451c354aabacb58b785699d6275771))
+
 ## [1.0.8](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.7...v1.0.8) (2026-05-18)
 
 ### Bug Fixes
