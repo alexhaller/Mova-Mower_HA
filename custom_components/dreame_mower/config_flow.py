@@ -1,4 +1,3 @@
-# mypy: ignore-errors
 """Config flow for Dremae Mower."""
 
 from __future__ import annotations
@@ -15,12 +14,12 @@ from homeassistant.const import (
     CONF_USERNAME,
 )
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.device_registry import format_mac
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import (
     ConfigEntry,
     ConfigFlow,
+    ConfigFlowResult,
     OptionsFlow,
 )
 
@@ -68,9 +67,9 @@ class DreameMowerOptionsFlowHandler(OptionsFlow):
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Manage Dreame/Mova Mower options."""
-        errors = {}
+        errors: dict[str, str] = {}
         data = self.config_entry.data
         options = self.config_entry.options
 
@@ -163,7 +162,7 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle a flow initialized by the user."""
         if user_input is not None:
             config_type = user_input.get(CONF_TYPE, DREAMEHOME)
@@ -185,7 +184,9 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
             errors={},
         )
 
-    async def async_step_reauth(self, user_input: Mapping[str, Any]) -> FlowResult:
+    async def async_step_reauth(
+        self, user_input: Mapping[str, Any]
+    ) -> ConfigFlowResult:
         """Perform reauth upon an authentication error or missing cloud credentials."""
         self.name = user_input[CONF_NAME]
         self.host = user_input[CONF_HOST]
@@ -199,36 +200,38 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
 
     async def async_step_reauth_confirm(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Dialog that informs the user that reauth is required."""
         if user_input is not None:
-            return await self.async_step_cloud()
+            return await self.async_step_dreame()
         return self.async_show_form(step_id="reauth_confirm")
 
     async def async_step_connect(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Connect to a Dreame/Mova Mower device."""
         errors: dict[str, str] = {}
         if self.prefer_cloud or (self.token and len(self.token) == 32):
             try:
                 if self.protocol is None:
                     self.protocol = DreameMowerProtocol(
-                        self.host,
-                        self.token,
-                        self.username,
-                        self.password,
+                        self.host or "",
+                        self.token or "",
+                        self.username or "",
+                        self.password or "",
                         self.country,
                         self.prefer_cloud,
                         self.account_type,
                     )
                 else:
                     self.protocol.set_credentials(
-                        self.host, self.token, account_type=self.account_type
+                        self.host or "",
+                        self.token or "",
+                        account_type=self.account_type,
                     )
 
                 if self.protocol.device_cloud:
-                    self.protocol.device_cloud._did = self.device_id
+                    self.protocol.device_cloud._did = self.device_id  # type: ignore[assignment]
 
                 if (
                     (self.account_type != "dreame" and self.account_type != "mova")
@@ -255,7 +258,9 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
                         }
                     )
 
-                if any(self.model.startswith(prefix) for prefix in DREAME_MODELS):
+                if self.model and any(
+                    self.model.startswith(prefix) for prefix in DREAME_MODELS
+                ):
                     if self.name is None:
                         self.name = self.model
                     return await self.async_step_options()
@@ -276,8 +281,8 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
     async def async_step_local(
         self,
         user_input: dict[str, Any] | None = None,
-        errors: dict[str, Any] | None = {},
-    ) -> FlowResult:
+        errors: dict[str, str] = {},
+    ) -> ConfigFlowResult:
         """Handle the initial step."""
 
         if user_input is not None:
@@ -305,10 +310,10 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
     async def async_step_mi(
         self,
         user_input: dict[str, Any] | None = None,
-        errors: dict[str, Any] | None = {},
-    ) -> FlowResult:
+        errors: dict[str, str] = {},
+    ) -> ConfigFlowResult:
         """Configure a mi mower device through the Miio Cloud."""
-        placeholders = {}
+        placeholders: dict[str, str] = {}
         if user_input is not None:
             self.account_type = "mi"
             username = user_input.get(CONF_USERNAME)
@@ -409,10 +414,10 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
     async def async_step_dreame(
         self,
         user_input: dict[str, Any] | None = None,
-        errors: dict[str, Any] | None = {},
-    ) -> FlowResult:
+        errors: dict[str, str] = {},
+    ) -> ConfigFlowResult:
         """Configure a dreame mower device through the Miio Cloud."""
-        placeholders = {}
+        placeholders: dict[str, str] = {}
         if user_input is not None:
             self.account_type = "dreame"
             username = user_input.get(CONF_USERNAME)
@@ -496,10 +501,10 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
     async def async_step_mova(
         self,
         user_input: dict[str, Any] | None = None,
-        errors: dict[str, Any] | None = {},
-    ) -> FlowResult:
+        errors: dict[str, str] = {},
+    ) -> ConfigFlowResult:
         """Configure a mova mower device through the Miio Cloud."""
-        placeholders = {}
+        placeholders: dict[str, str] = {}
         if user_input is not None:
             self.account_type = "mova"
             username = user_input.get(CONF_USERNAME)
@@ -581,7 +586,7 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
 
     async def async_step_devices(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle multiple Dreame/Mova Mower devices found."""
         errors: dict[str, str] = {}
         if user_input is not None:
@@ -598,9 +603,9 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
 
     async def async_step_options(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Handle Dreame/Mova Mower options step."""
-        errors = {}
+        errors: dict[str, str] = {}
 
         if user_input is not None:
             self.name = user_input[CONF_NAME]
@@ -641,7 +646,7 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):
         default_objects = list(MAP_OBJECTS.keys())
         default_color_scheme = "Dreame Light"
         default_icon_set = "Dreame"
-        model = re.sub(r"[^0-9]", "", self.model)
+        model = re.sub(r"[^0-9]", "", self.model or "")
         if not (model.isnumeric() and int(model) >= 2215):
             default_objects.pop(3)  # Room Name Background
             default_objects.pop(2)  # Room Names
