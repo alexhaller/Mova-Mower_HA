@@ -1,3 +1,9 @@
+## [1.0.6](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.5...v1.0.6) (2026-05-18)
+
+### Bug Fixes
+
+* replace inline URLs with placeholders in all translation files ([ecb9947](https://github.com/alexhaller/Mova-Mower_HA/commit/ecb9947c432f6de054aefe43b0cf27c489d81d66))
+
 ## [1.0.5](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.4...v1.0.5) (2026-05-17)
 
 ### Bug Fixes
