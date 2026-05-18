@@ -1,3 +1,9 @@
+## [1.0.7](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.6...v1.0.7) (2026-05-18)
+
+### Bug Fixes
+
+* revert to py-mini-racer; quickjs has no pre-built wheel for aarch64/Python 3.14 ([a54f335](https://github.com/alexhaller/Mova-Mower_HA/commit/a54f33503118adc4a3086d1086618490d10136f1))
+
 ## [1.0.6](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.5...v1.0.6) (2026-05-18)
 
 ### Bug Fixes
