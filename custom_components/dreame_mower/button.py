@@ -112,7 +112,7 @@ BUTTONS: tuple[ButtonEntityDescription, ...] = (
         icon="mdi:map-plus",
         entity_category=EntityCategory.CONFIG,
         action_fn=lambda device: device.start_fast_mapping(),
-        exists_fn=lambda description, device: device.capability.lidar_navigation,
+        exists_fn=lambda description, device: device.capability.map,
     ),
     DreameMowerButtonEntityDescription(
         key="start_mapping",
@@ -120,7 +120,7 @@ BUTTONS: tuple[ButtonEntityDescription, ...] = (
         entity_category=EntityCategory.CONFIG,
         action_fn=lambda device: device.start_mapping(),
         entity_registry_enabled_default=False,
-        exists_fn=lambda description, device: device.capability.lidar_navigation,
+        exists_fn=lambda description, device: device.capability.map,
     ),
 )
 

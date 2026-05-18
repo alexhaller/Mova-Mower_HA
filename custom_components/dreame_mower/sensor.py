@@ -75,7 +75,7 @@ SENSORS: tuple[DreameMowerSensorEntityDescription, ...] = (
         icon="mdi:map-clock",
         native_unit_of_measurement=UNIT_MINUTES,
         available_fn=lambda device: device.status.fast_mapping,
-        exists_fn=lambda description, device: device.capability.lidar_navigation,
+        exists_fn=lambda description, device: device.capability.map,
     ),
     DreameMowerSensorEntityDescription(
         property_key=DreameMowerProperty.CLEANED_AREA,
@@ -295,9 +295,7 @@ SENSORS: tuple[DreameMowerSensorEntityDescription, ...] = (
         key="current_zone",
         icon="mdi:home-map-marker",
         value_fn=lambda value, device: device.status.current_zone.name,
-        exists_fn=lambda description, device: (
-            device.capability.map and device.capability.lidar_navigation
-        ),
+        exists_fn=lambda description, device: device.capability.map,
         attrs_fn=lambda device: {
             ATTR_ZONE_ID: device.status.current_zone.segment_id,
             ATTR_ZONE_ICON: device.status.current_zone.icon,
