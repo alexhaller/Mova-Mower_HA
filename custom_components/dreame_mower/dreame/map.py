@@ -360,7 +360,10 @@ class DreameMapMowerMapManager:
         try:
             _LOGGER.debug("DreameMapMowerMapManager._request_map %s", payload)
             mapping = DreameMowerActionMapping[DreameMowerAction.REQUEST_MAP]
-            return self._protocol.action(mapping["siid"], mapping["aiid"], payload, 0)
+            result = self._protocol.action(mapping["siid"], mapping["aiid"], payload, 0)
+            if isinstance(result, list):
+                result = {MAP_PARAMETER_CODE: 0, MAP_PARAMETER_OUT: result}
+            return result
         except Exception as ex:
             _LOGGER.warning("DreameMapMowerMapManager._request_map failed: %s", ex)
         return None
