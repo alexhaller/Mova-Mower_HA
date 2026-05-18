@@ -1,3 +1,9 @@
+## [1.0.15](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.14...v1.0.15) (2026-05-18)
+
+### Bug Fixes
+
+* replace lidar_navigation gate with map for mower mapping entities ([a1f0928](https://github.com/alexhaller/Mova-Mower_HA/commit/a1f09280930f222b569e497e93f2a81262c62cb2))
+
 ## [1.0.14](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.13...v1.0.14) (2026-05-18)
 
 ### Bug Fixes
