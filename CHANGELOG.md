@@ -1,3 +1,9 @@
+## [1.0.14](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.13...v1.0.14) (2026-05-18)
+
+### Bug Fixes
+
+* guard _handle_properties against None when device is offline ([d5da78a](https://github.com/alexhaller/Mova-Mower_HA/commit/d5da78ac43c3e49fe69d3e11f6951d70ae452f23))
+
 ## [1.0.13](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.12...v1.0.13) (2026-05-18)
 
 ### Bug Fixes
