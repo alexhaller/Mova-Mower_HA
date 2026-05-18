@@ -12,7 +12,7 @@
     "pillow>=10.0.0",
     "numpy>=1.23.0",
     "pybase64>=1.4.3",
-    "requests>=2.34.2",
+    "requests>=2.33.1",
     "pycryptodome>=3.23.0",
     "python-miio>=0.5.12",
     "paho-mqtt>=2.1.0"
