@@ -294,8 +294,14 @@ class DreameMowerDevice:
             device_id,
         )
         if self._protocol.cloud:
+            _LOGGER.debug("Cloud protocol available — initializing map manager")
             self._map_manager = DreameMapMowerMapManager(self._protocol)
+        else:
+            _LOGGER.debug(
+                "No cloud protocol — map manager NOT initialized (map features unavailable)"
+            )
 
+        if self._protocol.cloud:
             self.listen(self._map_list_changed, DreameMowerProperty.MAP_LIST)
             self.listen(
                 self._recovery_map_list_changed, DreameMowerProperty.RECOVERY_MAP_LIST

@@ -1,6 +1,7 @@
 # mypy: ignore-errors
 from __future__ import annotations
 
+import logging
 import math
 import json
 import time
@@ -8,6 +9,8 @@ from typing import Any, Final
 from enum import IntEnum, Enum
 from dataclasses import dataclass, field
 from datetime import datetime
+
+_LOGGER = logging.getLogger(__name__)
 
 
 SEGMENT_TYPE_CODE_TO_NAME: Final = {
@@ -1310,9 +1313,10 @@ class DreameMowerDeviceCapability:
         self._device = device
 
     def refresh(self, device_capabilities):
-        self.lidar_navigation = bool(
-            self._device.get_property(DreameMowerProperty.MAP_SAVING) is None
-        )
+        map_saving = self._device.get_property(DreameMowerProperty.MAP_SAVING)
+        _LOGGER.debug("Capability refresh — MAP_SAVING property value: %s", map_saving)
+
+        self.lidar_navigation = bool(map_saving is None)
         self.multi_floor_map = bool(
             self._device.get_property(DreameMowerProperty.MULTI_FLOOR_MAP) is not None
             and self.lidar_navigation
@@ -1422,6 +1426,22 @@ class DreameMowerDeviceCapability:
             self.list.append("cruising")
         if self.map:
             self.list.append("map")
+
+        _LOGGER.debug(
+            "Capability refresh complete — lidar_navigation=%s, map=%s, dnd=%s, "
+            "multi_floor_map=%s, backup_map=%s, "
+            "cleaning_history/map_rotation/current_map/current_map_data available=%s, "
+            "start_mapping/start_fast_mapping/current_zone/mapping_time available=%s, "
+            "active capabilities=%s",
+            self.lidar_navigation,
+            self.map,
+            self.dnd,
+            self.multi_floor_map,
+            self.backup_map,
+            self.map,
+            self.lidar_navigation,
+            self.list,
+        )
 
     @property
     def map(self) -> bool:
