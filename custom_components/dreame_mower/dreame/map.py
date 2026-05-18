@@ -10364,7 +10364,7 @@ class DreameMowerMapOptimizer:
                 top, left, height, width, map_data.dimensions.grid_size
             )
 
-    def optimize(self, map_data, saved_map_data=None, js_optimizer=True):
+    def optimize(self, map_data, saved_map_data=None, js_optimizer=False):
         if map_data.saved_map:
             return map_data
 
