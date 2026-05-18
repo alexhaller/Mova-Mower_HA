@@ -177,10 +177,10 @@ class DreameMowerDreameHomeCloudProtocol:
         return False
 
     @staticmethod
-    def _on_client_connect(client, self, flags, rc):
+    def _on_client_connect(client, self, flags, reason_code, properties):
         self._client_connecting = False
         self._reconnect_timer_cancel()
-        if rc == 0:
+        if not reason_code.is_failure:
             if not self._client_connected:
                 self._client_connected = True
                 _LOGGER.debug("Connected to the device client")
@@ -193,19 +193,21 @@ class DreameMowerDreameHomeCloudProtocol:
                 except Exception:
                     pass
         else:
-            _LOGGER.warn("Device client connection failed: %s", rc)
+            _LOGGER.warn("Device client connection failed: %s", reason_code)
             if not self._set_client_key():
                 self._client_connected = False
 
     @staticmethod
-    def _on_client_disconnect(client, self, rc):
-        if rc != 0 and not self._set_client_key():
-            if rc == 5 and self._key_expire:
+    def _on_client_disconnect(client, self, disconnect_flags, reason_code, properties):
+        if reason_code.is_failure and not self._set_client_key():
+            if reason_code.value == 5 and self._key_expire:
                 self.login()
             if self._client_connected:
                 if not self._client_connecting:
                     self._client_connecting = True
-                    _LOGGER.info("Device Client disconnected (%s) Reconnecting...", rc)
+                    _LOGGER.info(
+                        "Device Client disconnected (%s) Reconnecting...", reason_code
+                    )
                 self._reconnect_timer_cancel()
                 self._reconnect_timer = Timer(10, self._reconnect_timer_task)
                 self._reconnect_timer.start()
@@ -251,7 +253,7 @@ class DreameMowerDreameHomeCloudProtocol:
                         try:
                             host = self._host.split(":")
                             self._client = mqtt_client.Client(
-                                mqtt_client.CallbackAPIVersion.VERSION1,
+                                mqtt_client.CallbackAPIVersion.VERSION2,
                                 f"{self._strings[53]}{self._uid}{self._strings[54]}{DreameMowerDreameHomeCloudProtocol.get_random_agent_id()}{self._strings[54]}{host[0]}",
                                 clean_session=True,
                                 userdata=self,
