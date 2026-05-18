@@ -15,7 +15,7 @@
     "requests>=2.34.2",
     "pycryptodome>=3.23.0",
     "python-miio>=0.5.12",
-    "paho-mqtt>=1.6.1"
+    "paho-mqtt>=2.1.0"
   ],
   "version": "1.0.8"
 }
