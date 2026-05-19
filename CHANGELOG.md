@@ -1,3 +1,9 @@
+## [1.1.1](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.1.0...v1.1.1) (2026-05-19)
+
+### Bug Fixes
+
+* resolve false unavailable state and misleading send warning for cloud protocol ([70c41e0](https://github.com/alexhaller/Mova-Mower_HA/commit/70c41e0477698ca72edcf2f3c848be4d98efecec))
+
 ## [1.1.0](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.17...v1.1.0) (2026-05-19)
 
 ### Features
