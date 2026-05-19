@@ -491,16 +491,27 @@ class DreameMowerDreameHomeCloudProtocol:
             )
             return None
 
-        if (
-            api_response is None
-            or "data" not in api_response
-            or "result" not in api_response["data"]
-        ):
+        if api_response is None or "data" not in api_response:
             _LOGGER.warning(
                 "DreameMowerDreameHomeCloudProtocol.send failed: %s", api_response
             )
             return None
-        return api_response["data"]["result"]
+
+        data = api_response["data"]
+        if not isinstance(data, dict) or "result" not in data:
+            # Cloud accepted the command but returned no result — expected for
+            # commands where the device responds via MQTT push instead of HTTP.
+            if api_response.get("code") == 0 and api_response.get("success"):
+                _LOGGER.debug(
+                    "DreameMowerDreameHomeCloudProtocol.send: no result in response (MQTT push expected): %s",
+                    api_response,
+                )
+            else:
+                _LOGGER.warning(
+                    "DreameMowerDreameHomeCloudProtocol.send failed: %s", api_response
+                )
+            return None
+        return data["result"]
 
     def get_file(self, url: str, retry_count: int = 4) -> Any:
         retries = 0

@@ -202,7 +202,7 @@ class DreameMowerEntity(CoordinatorEntity[DreameMowerDataUpdateCoordinator]):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        if not self.device.device_connected:
+        if not self.device.available:
             return False
 
         if self.entity_description.available_fn is not None:
