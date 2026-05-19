@@ -8,8 +8,8 @@ import asyncio
 import traceback
 import gzip
 from typing import Any, Final
-from dataclasses import dataclass
-from datetime import datetime, timedelta
+from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
 from functools import partial
 from aiohttp import web
 
@@ -58,6 +58,30 @@ from .dreame.map import (
     DreameMowerMapRenderer,
     DreameMowerMapDataJsonRenderer,
 )
+from .dreame.map_app import fetch_app_map_png
+
+_APP_MAP_CACHE_TTL: Final = timedelta(seconds=60)
+
+
+@dataclass
+class _AppMapCache:
+    """TTL cache for the app-action map path, shared across coordinator cycles."""
+
+    image: bytes | None = None
+    refreshed_at: datetime | None = None
+    _lock: asyncio.Lock = field(default_factory=asyncio.Lock)
+
+    def is_fresh(self) -> bool:
+        return (
+            self.image is not None
+            and self.refreshed_at is not None
+            and (datetime.now(UTC) - self.refreshed_at) <= _APP_MAP_CACHE_TTL
+        )
+
+    def store(self, image: bytes) -> None:
+        self.image = image
+        self.refreshed_at = datetime.now(UTC)
+
 
 DREAME_TOKEN_CHANGE_INTERVAL: Final = timedelta(minutes=60)
 
@@ -501,6 +525,7 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
         self._image = None
         self._default_map = True
         self._proxy_images = {}
+        self._app_map_cache = _AppMapCache()
         self.map_index = map_index
         self._state = STATE_UNAVAILABLE
         if self.map_index == 0 and not self.map_data_json:
@@ -595,11 +620,35 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
             now = time.time()
             if now - self._last_map_request >= self.frame_interval:
                 self._last_map_request = now
-                if self.map_index == 0 and self.device:
+                if self.map_index == 0 and self.device and not self.map_data_json:
+                    image = await self._async_get_app_map_image()
+                    if image is not None:
+                        self._should_poll = True
+                        return image
                     self.device.update_map()
                 self.update()
             self._should_poll = True
         return self._image
+
+    async def _async_get_app_map_image(self) -> bytes | None:
+        """Try the app-action map path and return PNG bytes, or None on failure."""
+        if self._app_map_cache.is_fresh():
+            return self._app_map_cache.image
+
+        async with self._app_map_cache._lock:
+            if self._app_map_cache.is_fresh():
+                return self._app_map_cache.image
+            try:
+                image = await self.hass.async_add_executor_job(
+                    fetch_app_map_png, self.device.call_app_action
+                )
+                self._app_map_cache.store(image)
+                return image
+            except Exception as err:
+                LOGGER.debug(
+                    "App-action map fetch failed, falling back to legacy: %s", err
+                )
+                return None
 
     async def handle_async_still_stream(
         self, request: web.Request, interval: float

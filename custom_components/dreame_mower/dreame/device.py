@@ -2391,6 +2391,14 @@ class DreameMowerDevice:
 
         return result
 
+    def call_app_action(self, payload: dict[str, Any]) -> Any:
+        """Forward a low-level app-protocol action (siid=2, aiid=50).
+
+        Used by the app-action map path to call MAPL/MAPI/MAPD without going
+        through the DreameMowerAction enum and its scheduling side-effects.
+        """
+        return self._protocol.action(siid=2, aiid=50, parameters=[payload])
+
     def send_command(
         self, command: str, parameters: dict[str, Any] = None
     ) -> dict[str, Any] | None:
