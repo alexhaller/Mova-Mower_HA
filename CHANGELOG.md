@@ -1,3 +1,13 @@
+## [1.1.0](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.17...v1.1.0) (2026-05-19)
+
+### Features
+
+* add app-action map path with TTL cache ([ba777dd](https://github.com/alexhaller/Mova-Mower_HA/commit/ba777dd2a512b0339e294d0f06143a51c3ef4c51))
+
+### Bug Fixes
+
+* remove unused py_mini_racer import causing ModuleNotFoundError ([362dab0](https://github.com/alexhaller/Mova-Mower_HA/commit/362dab090393d15b716c20c08be52b9364572fac))
+
 ## [1.0.17](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.0.16...v1.0.17) (2026-05-18)
 
 ### Bug Fixes
