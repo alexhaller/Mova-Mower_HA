@@ -3,10 +3,9 @@ from __future__ import annotations
 
 import asyncio
 import collections
-import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
-from typing import Any, Final
+from typing import Final
 
 from homeassistant.components.camera import (
     Camera,
@@ -28,6 +27,9 @@ _APP_MAP_CACHE_TTL: Final = timedelta(seconds=60)
 DREAME_TOKEN_CHANGE_INTERVAL: Final = timedelta(minutes=60)
 PNG_CONTENT_TYPE: Final = "image/png"
 MAP_IMAGE_URL: Final = "/api/camera_proxy/{0}?token={1}&v={2}"
+_TOKEN_CHANGE_RATIO: Final = int(
+    DREAME_TOKEN_CHANGE_INTERVAL.total_seconds() / TOKEN_CHANGE_INTERVAL.total_seconds()
+)
 
 
 @dataclass
@@ -95,8 +97,6 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
         self.stream = None
         self.async_update_token()
         self._rtsp_to_webrtc = False
-        self._should_poll = True
-        self._last_map_request = 0
         self._attr_is_streaming = True
         self._app_map_cache = _AppMapCache()
         self._state = STATE_UNAVAILABLE
@@ -107,24 +107,16 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
     def _handle_coordinator_update(self) -> None:
         if self.device.available and self._state == STATE_UNAVAILABLE:
             self._state = datetime.now()
-        elif not self.device.available:
+            self.async_write_ha_state()
+        elif not self.device.available and self._state != STATE_UNAVAILABLE:
             self._state = STATE_UNAVAILABLE
-        self.async_write_ha_state()
+            self.async_write_ha_state()
 
     async def async_camera_image(
         self, width: int | None = None, height: int | None = None
     ) -> bytes | None:
-        if self._should_poll:
-            self._should_poll = False
-            now = time.time()
-            if now - self._last_map_request >= self.frame_interval:
-                self._last_map_request = now
-                image = await self._async_get_app_map_image()
-                if image is not None:
-                    self._should_poll = True
-                    return image
-            self._should_poll = True
-        return self._app_map_cache.image
+        image = await self._async_get_app_map_image()
+        return image if image is not None else self._app_map_cache.image
 
     async def _async_get_app_map_image(self) -> bytes | None:
         if self._app_map_cache.is_fresh():
@@ -151,11 +143,7 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
             self._access_token_update_counter += 1
         if (
             not self._access_token_update_counter
-            or self._access_token_update_counter
-            > int(
-                DREAME_TOKEN_CHANGE_INTERVAL.total_seconds()
-                / TOKEN_CHANGE_INTERVAL.total_seconds()
-            )
+            or self._access_token_update_counter > _TOKEN_CHANGE_RATIO
         ):
             self._access_token_update_counter = 1
             super().async_update_token()
@@ -175,7 +163,3 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
     @property
     def entity_picture(self) -> str:
         return MAP_IMAGE_URL.format(self.entity_id, self.access_tokens[-1], 0)
-
-    @property
-    def extra_state_attributes(self) -> dict[str, Any] | None:
-        return None
