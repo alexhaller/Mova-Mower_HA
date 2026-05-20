@@ -1,3 +1,9 @@
+## [1.1.2](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.1.1...v1.1.2) (2026-05-20)
+
+### Bug Fixes
+
+* remove broken map entities, keep only working app-action camera ([037f1f4](https://github.com/alexhaller/Mova-Mower_HA/commit/037f1f4a792c0361ad50e802b05e168447fc3ac3))
+
 ## [1.1.1](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.1.0...v1.1.1) (2026-05-19)
 
 ### Bug Fixes
