@@ -41,7 +41,6 @@ from .entity import (
 )
 
 from .dreame.const import ATTR_VALUE, STATE_NOT_SET
-from .dreame.types import ATTR_MAP_INDEX, ATTR_MAP_ID
 from .dreame import (
     DreameMowerProperty,
     DreameMowerAutoSwitchProperty,
@@ -135,47 +134,6 @@ SELECTS: tuple[DreameMowerSelectEntityDescription, ...] = (
         exists_fn=lambda description, device: bool(
             device.capability.cleangenius
             and DreameMowerEntityDescription().exists_fn(description, device)
-        ),
-    ),
-    DreameMowerSelectEntityDescription(
-        key="map_rotation",
-        icon="mdi:crop-rotate",
-        options=lambda device, segment: ["0", "90", "180", "270"],
-        entity_category=EntityCategory.CONFIG,
-        value_fn=lambda value, device: (
-            str(device.status.selected_map.rotation)
-            if device.status.selected_map
-            and device.status.selected_map.rotation is not None
-            else ""
-        ),
-        exists_fn=lambda description, device: device.capability.map,
-    ),
-    DreameMowerSelectEntityDescription(
-        key="selected_map",
-        icon="mdi:map-check",
-        options=lambda device, segment: [
-            v.map_name for k, v in device.status.map_data_list.items()
-        ],
-        entity_category=None,
-        value_fn=lambda value, device: (
-            device.status.selected_map.map_name
-            if device.status.selected_map and device.status.selected_map.map_name
-            else ""
-        ),
-        exists_fn=lambda description, device: (
-            device.capability.map and device.capability.multi_floor_map
-        ),
-        value_int_fn=lambda value, device: next(
-            (k for k, v in device.status.map_data_list.items() if v.map_name == value),
-            None,
-        ),
-        attrs_fn=lambda device: (
-            {
-                ATTR_MAP_ID: device.status.selected_map.map_id,
-                ATTR_MAP_INDEX: device.status.selected_map.map_index,
-            }
-            if device.status.selected_map
-            else None
         ),
     ),
 )

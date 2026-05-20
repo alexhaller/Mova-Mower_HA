@@ -107,21 +107,6 @@ BUTTONS: tuple[ButtonEntityDescription, ...] = (
         entity_category=EntityCategory.DIAGNOSTIC,
         action_fn=lambda device: device.clear_warning(),
     ),
-    DreameMowerButtonEntityDescription(
-        key="start_fast_mapping",
-        icon="mdi:map-plus",
-        entity_category=EntityCategory.CONFIG,
-        action_fn=lambda device: device.start_fast_mapping(),
-        exists_fn=lambda description, device: device.capability.map,
-    ),
-    DreameMowerButtonEntityDescription(
-        key="start_mapping",
-        icon="mdi:broom",
-        entity_category=EntityCategory.CONFIG,
-        action_fn=lambda device: device.start_mapping(),
-        entity_registry_enabled_default=False,
-        exists_fn=lambda description, device: device.capability.map,
-    ),
 )
 
 

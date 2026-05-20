@@ -106,25 +106,6 @@ SWITCHES: tuple[DreameMowerSwitchEntityDescription, ...] = (
         format_fn=lambda value, device: int(value),
     ),
     DreameMowerSwitchEntityDescription(
-        key="cleaning_sequence",
-        icon="mdi:order-numeric-ascending",
-        value_fn=lambda value, device: device.status.custom_order,
-        exists_fn=lambda description, device: (
-            device.capability.customized_cleaning and device.capability.map
-        ),
-        set_fn=lambda device, value: device.set_cleaning_sequence(
-            []
-            if not value
-            else (
-                device.status.previous_cleaning_sequence
-                if device.status.previous_cleaning_sequence
-                else list(sorted(device.status.current_segments.keys()))
-            )
-        ),
-        format_fn=lambda value, device: int(value),
-        entity_category=None,
-    ),
-    DreameMowerSwitchEntityDescription(
         property_key=DreameMowerAIProperty.AI_OBSTACLE_DETECTION,
         icon_fn=lambda value, device: "mdi:robot-off" if not value else "mdi:robot",
         entity_category=EntityCategory.CONFIG,
