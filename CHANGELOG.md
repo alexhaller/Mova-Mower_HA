@@ -1,3 +1,9 @@
+## [1.1.3](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.1.2...v1.1.3) (2026-05-20)
+
+### Bug Fixes
+
+* **camera:** simplify entity and bump pillow pin ([0cec53a](https://github.com/alexhaller/Mova-Mower_HA/commit/0cec53ab71c4385b4eb5a962a1e1406bf99aa0d5))
+
 ## [1.1.2](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.1.1...v1.1.2) (2026-05-20)
 
 ### Bug Fixes
