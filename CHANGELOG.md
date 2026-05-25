@@ -1,3 +1,9 @@
+## [1.1.4](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.1.3...v1.1.4) (2026-05-25)
+
+### Bug Fixes
+
+* **entities:** apply has_entity_name and remove bundled HA dependencies ([119d20e](https://github.com/alexhaller/Mova-Mower_HA/commit/119d20ed79dbcef1c4c058c7afa1d7b9487c1097))
+
 ## [1.1.3](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.1.2...v1.1.3) (2026-05-20)
 
 ### Bug Fixes
