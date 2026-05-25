@@ -30,6 +30,8 @@ from .dreame import (
     DreameMowerAIProperty,
 )
 
+PARALLEL_UPDATES = 1
+
 
 @dataclass
 class DreameMowerSwitchEntityDescription(

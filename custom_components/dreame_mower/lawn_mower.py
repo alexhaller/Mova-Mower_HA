@@ -98,6 +98,8 @@ from .const import (
     CONSUMABLE_SQUEEGEE,
 )
 
+PARALLEL_UPDATES = 1
+
 SUPPORT_DREAME = (
     LawnMowerEntityFeature.START_MOWING
     | LawnMowerEntityFeature.PAUSE
@@ -547,7 +549,7 @@ class DreameMower(DreameMowerEntity, LawnMowerEntity):
         super().__init__(coordinator)
 
         self._attr_device_class = DOMAIN
-        self._attr_name = coordinator.device.name
+        self._attr_name = None
         self._attr_unique_id = f"{coordinator.device.mac}_" + DOMAIN
 
         self._set_attrs()

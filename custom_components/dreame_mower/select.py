@@ -57,6 +57,8 @@ from .dreame import (
     CLEANING_ROUTE_TO_NAME,
 )
 
+PARALLEL_UPDATES = 1
+
 CLEANING_MODE_TO_ICON = {
     DreameMowerCleaningMode.MOWING: "mdi:broom",
 }
@@ -663,7 +665,7 @@ class DreameMowerSegmentSelectEntity(DreameMowerEntity, SelectEntity):
         else:
             name = f"{self.entity_description.key}_room_unavailable"
 
-        self._attr_name = f"{self.device.name} {name.replace('_', ' ').title()}"
+        self._attr_name = name.replace("_", " ").title()
 
         if self.entity_description.icon_fn is not None:
             self._attr_icon = self.entity_description.icon_fn(

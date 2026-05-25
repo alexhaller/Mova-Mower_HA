@@ -38,6 +38,7 @@ from .dreame.const import ATTR_VALUE
 from .coordinator import DreameMowerDataUpdateCoordinator
 from .entity import DreameMowerEntity, DreameMowerEntityDescription
 
+PARALLEL_UPDATES = 0
 
 STREAM_STATUS_TO_ICON = {
     DreameMowerStreamStatus.IDLE: "mdi:webcam",

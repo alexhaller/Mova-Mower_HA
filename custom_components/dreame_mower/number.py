@@ -2,6 +2,7 @@
 """Support for Dreame Mower numbers."""
 
 from __future__ import annotations
+
 import copy
 
 from dataclasses import dataclass
@@ -26,6 +27,8 @@ from .const import DOMAIN, UNIT_PERCENT
 from .coordinator import DreameMowerDataUpdateCoordinator
 from .entity import DreameMowerEntity, DreameMowerEntityDescription
 from .dreame import DreameMowerAction, DreameMowerProperty
+
+PARALLEL_UPDATES = 1
 
 
 @dataclass
@@ -262,7 +265,7 @@ class DreameMowerSegmentNumberEntity(DreameMowerEntity, NumberEntity):
         else:
             name = f"{self.entity_description.key}_room_unavailable"
 
-        self._attr_name = f"{self.device.name} {name.replace('_', ' ').title()}"
+        self._attr_name = name.replace("_", " ").title()
 
         if self.entity_description.icon_fn is not None:
             self._attr_icon = self.entity_description.icon_fn(

@@ -77,6 +77,8 @@ class DreameMowerEntityDescription:
 class DreameMowerEntity(CoordinatorEntity[DreameMowerDataUpdateCoordinator]):
     """Defines a base Dreame Mower entity."""
 
+    has_entity_name = True
+
     def __init__(
         self,
         coordinator: DreameMowerDataUpdateCoordinator,
@@ -154,7 +156,7 @@ class DreameMowerEntity(CoordinatorEntity[DreameMowerDataUpdateCoordinator]):
             if self.entity_description.name_fn is not None:
                 name = self.entity_description.name_fn(self.native_value, self.device)
 
-            self._attr_name = f"{self.device.name} {name}"
+            self._attr_name = name
 
     def _generate_entity_id(self, format) -> None:
         if self.entity_description.key:

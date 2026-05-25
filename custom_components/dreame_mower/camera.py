@@ -23,6 +23,8 @@ from .coordinator import DreameMowerDataUpdateCoordinator
 from .entity import DreameMowerEntity, DreameMowerEntityDescription
 from .dreame.map_app import fetch_app_map_png
 
+PARALLEL_UPDATES = 0
+
 _APP_MAP_CACHE_TTL: Final = timedelta(seconds=60)
 DREAME_TOKEN_CHANGE_INTERVAL: Final = timedelta(minutes=60)
 PNG_CONTENT_TYPE: Final = "image/png"
@@ -101,7 +103,7 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
         self._app_map_cache = _AppMapCache()
         self._state = STATE_UNAVAILABLE
         self._attr_unique_id = f"{self.device.mac}_map_{description.key}"
-        self._attr_name = f"{self.device.name} Map"
+        self._attr_name = "Map"
 
     @callback
     def _handle_coordinator_update(self) -> None:

@@ -23,6 +23,8 @@ from .const import DOMAIN
 from .coordinator import DreameMowerDataUpdateCoordinator
 from .entity import DreameMowerEntity, DreameMowerEntityDescription
 
+PARALLEL_UPDATES = 1
+
 
 @dataclass
 class DreameMowerTimeEntityDescription(
