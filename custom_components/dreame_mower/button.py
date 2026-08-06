@@ -3,11 +3,11 @@
 
 from __future__ import annotations
 
-from typing import Any
-from dataclasses import dataclass
-from collections.abc import Callable
-from functools import partial
 import copy
+from collections.abc import Callable
+from dataclasses import dataclass
+from functools import partial
+from typing import Any
 
 from homeassistant.components.button import (
     ENTITY_ID_FORMAT,
@@ -15,18 +15,16 @@ from homeassistant.components.button import (
     ButtonEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
-
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import entity_registry
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.helpers import entity_registry
-from homeassistant.exceptions import HomeAssistantError
 
 from .const import DOMAIN
-
 from .coordinator import DreameMowerDataUpdateCoordinator
-from .entity import DreameMowerEntity, DreameMowerEntityDescription
 from .dreame import DreameMowerAction
+from .entity import DreameMowerEntity, DreameMowerEntityDescription
 
 PARALLEL_UPDATES = 1
 
@@ -146,9 +144,9 @@ def async_update_buttons(
     new_entities = []
     if coordinator.device.capability.shortcuts:
         if coordinator.device.status.shortcuts:
-            new_ids = set([k for k, v in coordinator.device.status.shortcuts.items()])
+            new_ids = set(coordinator.device.status.shortcuts)
         else:
-            new_ids = set([])
+            new_ids = set()
 
         current_ids = set(current_shortcut)
 
@@ -173,9 +171,7 @@ def async_update_buttons(
             new_entities = new_entities + current_shortcut[shortcut_id]
 
     if coordinator.device.capability.backup_map:
-        new_indexes = set(
-            [k for k in range(1, len(coordinator.device.status.map_list) + 1)]
-        )
+        new_indexes = set(range(1, len(coordinator.device.status.map_list) + 1))
         current_ids = set(current_map)
 
         for map_index in current_ids - new_indexes:

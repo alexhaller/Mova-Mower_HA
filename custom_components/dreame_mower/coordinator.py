@@ -6,68 +6,70 @@ from __future__ import annotations
 import math
 import time
 import traceback
+
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import (
-    CONF_NAME,
-    CONF_HOST,
-    CONF_TOKEN,
-    CONF_PASSWORD,
-    CONF_USERNAME,
     ATTR_ENTITY_ID,
+    CONF_HOST,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_TOKEN,
+    CONF_USERNAME,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import generate_entity_id
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
+
+from .const import (
+    CONF_ACCOUNT_TYPE,
+    CONF_COUNTRY,
+    CONF_DID,
+    CONF_MAC,
+    CONF_NOTIFY,
+    CONF_PREFER_CLOUD,
+    CONSUMABLE_BLADES,
+    CONSUMABLE_FILTER,
+    CONSUMABLE_LENSBRUSH,
+    CONSUMABLE_SENSOR,
+    CONSUMABLE_SIDE_BRUSH,
+    CONSUMABLE_SQUEEGEE,
+    CONSUMABLE_TANK_FILTER,
+    CONTENT_TYPE,
+    DOMAIN,
+    EVENT_2FA_LOGIN,
+    EVENT_CONSUMABLE,
+    EVENT_ERROR,
+    EVENT_INFORMATION,
+    EVENT_TASK_STATUS,
+    EVENT_WARNING,
+    LOGGER,
+    NOTIFICATION_2FA_LOGIN,
+    NOTIFICATION_CLEANUP_COMPLETED,
+    NOTIFICATION_ID_2FA_LOGIN,
+    NOTIFICATION_ID_CLEAN_SENSOR,
+    NOTIFICATION_ID_CLEANING_PAUSED,
+    NOTIFICATION_ID_CLEANUP_COMPLETED,
+    NOTIFICATION_ID_CONSUMABLE,
+    NOTIFICATION_ID_ERROR,
+    NOTIFICATION_ID_INFORMATION,
+    NOTIFICATION_ID_REPLACE_BLADES,
+    NOTIFICATION_ID_REPLACE_FILTER,
+    NOTIFICATION_ID_REPLACE_LENSBRUSH,
+    NOTIFICATION_ID_REPLACE_SIDE_BRUSH,
+    NOTIFICATION_ID_REPLACE_SQUEEGEE,
+    NOTIFICATION_ID_REPLACE_TANK_FILTER,
+    NOTIFICATION_ID_REPLACE_TEMPORARY_MAP,
+    NOTIFICATION_ID_WARNING,
+    NOTIFICATION_REPLACE_MAP,
+    NOTIFICATION_REPLACE_MULTI_MAP,
+    NOTIFICATION_RESUME_CLEANING,
+    NOTIFICATION_RESUME_CLEANING_NOT_PERFORMED,
+)
 from .dreame import DreameMowerDevice, DreameMowerProperty
 from .dreame.resources import (
     CONSUMABLE_IMAGE,
-)
-from .const import (
-    DOMAIN,
-    LOGGER,
-    CONF_NOTIFY,
-    CONF_COUNTRY,
-    CONF_MAC,
-    CONF_DID,
-    CONF_ACCOUNT_TYPE,
-    CONF_PREFER_CLOUD,
-    CONTENT_TYPE,
-    NOTIFICATION_CLEANUP_COMPLETED,
-    NOTIFICATION_RESUME_CLEANING,
-    NOTIFICATION_RESUME_CLEANING_NOT_PERFORMED,
-    NOTIFICATION_REPLACE_MULTI_MAP,
-    NOTIFICATION_REPLACE_MAP,
-    NOTIFICATION_2FA_LOGIN,
-    NOTIFICATION_ID_CLEANING_PAUSED,
-    NOTIFICATION_ID_REPLACE_BLADES,
-    NOTIFICATION_ID_REPLACE_SIDE_BRUSH,
-    NOTIFICATION_ID_REPLACE_FILTER,
-    NOTIFICATION_ID_REPLACE_TANK_FILTER,
-    NOTIFICATION_ID_CLEAN_SENSOR,
-    NOTIFICATION_ID_REPLACE_LENSBRUSH,
-    NOTIFICATION_ID_REPLACE_SQUEEGEE,
-    NOTIFICATION_ID_CLEANUP_COMPLETED,
-    NOTIFICATION_ID_WARNING,
-    NOTIFICATION_ID_ERROR,
-    NOTIFICATION_ID_INFORMATION,
-    NOTIFICATION_ID_CONSUMABLE,
-    NOTIFICATION_ID_REPLACE_TEMPORARY_MAP,
-    NOTIFICATION_ID_2FA_LOGIN,
-    EVENT_TASK_STATUS,
-    EVENT_CONSUMABLE,
-    EVENT_WARNING,
-    EVENT_ERROR,
-    EVENT_INFORMATION,
-    EVENT_2FA_LOGIN,
-    CONSUMABLE_BLADES,
-    CONSUMABLE_SIDE_BRUSH,
-    CONSUMABLE_FILTER,
-    CONSUMABLE_TANK_FILTER,
-    CONSUMABLE_SENSOR,
-    CONSUMABLE_LENSBRUSH,
-    CONSUMABLE_SQUEEGEE,
 )
 
 
@@ -322,21 +324,21 @@ class DreameMowerDataUpdateCoordinator(DataUpdateCoordinator[DreameMowerDevice])
     def _notification_dismiss_listener(self, type, data) -> None:
         if type == persistent_notification.UpdateType.REMOVED and self._device:
             notifications = self.hass.data.get(persistent_notification.DOMAIN)
-            if self._has_warning:
-                if (
-                    f"{DOMAIN}_{self._device.mac}_{NOTIFICATION_ID_WARNING}"
-                    not in notifications
-                ):
-                    if NOTIFICATION_ID_WARNING in self._notify:
-                        self._device.clear_warning()
-                    self._has_warning = self._device.status.has_warning
+            if (
+                self._has_warning
+                and f"{DOMAIN}_{self._device.mac}_{NOTIFICATION_ID_WARNING}"
+                not in notifications
+            ):
+                if NOTIFICATION_ID_WARNING in self._notify:
+                    self._device.clear_warning()
+                self._has_warning = self._device.status.has_warning
 
-            if self._two_factor_url:
-                if (
-                    f"{DOMAIN}_{self._device.mac}_{NOTIFICATION_ID_2FA_LOGIN}"
-                    not in notifications
-                ):
-                    self._two_factor_url = None
+            if (
+                self._two_factor_url
+                and f"{DOMAIN}_{self._device.mac}_{NOTIFICATION_ID_2FA_LOGIN}"
+                not in notifications
+            ):
+                self._two_factor_url = None
 
     def _fire_event(self, event_id, data) -> None:
         event_data = {

@@ -1,0 +1,4 @@
+# The inner dreame/ package is the vendored upstream device SDK
+# (forked from bhuebschen/dreame-mower). It is carried verbatim so upstream
+# changes stay mergeable, so it is linted by neither ruff nor mypy.
+extend-exclude = ["custom_components/dreame_mower/dreame/"]

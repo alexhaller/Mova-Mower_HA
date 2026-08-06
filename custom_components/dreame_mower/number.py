@@ -4,10 +4,9 @@
 from __future__ import annotations
 
 import copy
-
+from collections.abc import Callable
 from dataclasses import dataclass
 from functools import partial
-from collections.abc import Callable
 
 from homeassistant.components.number import (
     ENTITY_ID_FORMAT,
@@ -17,16 +16,15 @@ from homeassistant.components.number import (
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_registry
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, UNIT_PERCENT
-
 from .coordinator import DreameMowerDataUpdateCoordinator
-from .entity import DreameMowerEntity, DreameMowerEntityDescription
 from .dreame import DreameMowerAction, DreameMowerProperty
+from .entity import DreameMowerEntity, DreameMowerEntityDescription
 
 PARALLEL_UPDATES = 1
 
@@ -93,8 +91,8 @@ def async_update_segment_numbers(
 ) -> None:
     new_ids = []
     if coordinator.device and coordinator.device.status.map_list:
-        for k, v in coordinator.device.status.map_data_list.items():
-            for j, s in v.segments.items():
+        for v in coordinator.device.status.map_data_list.values():
+            for j in v.segments:
                 if j not in new_ids:
                     new_ids.append(j)
 

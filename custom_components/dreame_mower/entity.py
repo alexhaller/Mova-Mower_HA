@@ -1,37 +1,36 @@
 # mypy: ignore-errors
 from __future__ import annotations
 
-from typing import Any
-from dataclasses import dataclass
 from collections.abc import Callable
+from dataclasses import dataclass
 from functools import partial
+from typing import Any
 
 from homeassistant.core import callback
-from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
-from homeassistant.helpers.entity import DeviceInfo
-from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.exceptions import HomeAssistantError
-from homeassistant.helpers.entity import async_generate_entity_id
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
+from homeassistant.helpers.entity import DeviceInfo, async_generate_entity_id
+from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .coordinator import DreameMowerDataUpdateCoordinator
 from .const import DOMAIN, LOGGER
-from .dreame.const import ATTR_VALUE
+from .coordinator import DreameMowerDataUpdateCoordinator
 from .dreame import (
-    DreameMowerDevice,
-    DreameMowerProperty,
-    DreameMowerAutoSwitchProperty,
-    DreameMowerStrAIProperty,
-    DreameMowerAIProperty,
-    DreameMowerAction,
-    DeviceException,
-    DeviceUpdateFailedException,
-    InvalidActionException,
-    InvalidValueException,
-    PROPERTY_TO_NAME,
+    ACTION_AVAILABILITY,
     ACTION_TO_NAME,
     PROPERTY_AVAILABILITY,
-    ACTION_AVAILABILITY,
+    PROPERTY_TO_NAME,
+    DeviceException,
+    DeviceUpdateFailedException,
+    DreameMowerAction,
+    DreameMowerAIProperty,
+    DreameMowerAutoSwitchProperty,
+    DreameMowerDevice,
+    DreameMowerProperty,
+    DreameMowerStrAIProperty,
+    InvalidActionException,
+    InvalidValueException,
 )
+from .dreame.const import ATTR_VALUE
 
 
 @dataclass
@@ -58,8 +57,10 @@ class DreameMowerEntityDescription:
         )
         or (
             (
-                isinstance(description.property_key, DreameMowerStrAIProperty)
-                or isinstance(description.property_key, DreameMowerAIProperty)
+                isinstance(
+                    description.property_key,
+                    DreameMowerStrAIProperty | DreameMowerAIProperty,
+                )
             )
             and device.ai_data
             and description.property_key.name in device.ai_data

@@ -10,7 +10,6 @@
   "iot_class": "cloud_polling",
   "issue_tracker": "https://github.com/alexhaller/Mova-Mower_HA/issues",
   "requirements": [
-    "pillow>=12.2.0",
     "pybase64>=1.4.3",
     "pycryptodome>=3.23.0",
     "python-miio>=0.5.12"

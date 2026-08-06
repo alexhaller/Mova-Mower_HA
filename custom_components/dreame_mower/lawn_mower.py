@@ -1,102 +1,102 @@
 # mypy: ignore-errors
 from __future__ import annotations
 
-import voluptuous as vol
 from typing import Final
 
-from .coordinator import DreameMowerDataUpdateCoordinator
-from .entity import DreameMowerEntity
-
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
-from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import config_validation as cv, entity_platform
-from homeassistant.helpers.icon import icon_for_battery_level
+import voluptuous as vol
 from homeassistant.components.lawn_mower import (
     LawnMowerActivity,
     LawnMowerEntity,
     LawnMowerEntityFeature,
 )
-from .recorder import MOWER_UNRECORDED_ATTRIBUTES
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers import entity_platform
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.icon import icon_for_battery_level
 
-from .dreame.const import STATE_UNKNOWN
-from .dreame import (
-    DreameMowerState,
-    DreameMowerAction,
-)
 from .const import (
+    CONSUMABLE_BLADES,
+    CONSUMABLE_FILTER,
+    CONSUMABLE_LENSBRUSH,
+    CONSUMABLE_SENSOR,
+    CONSUMABLE_SIDE_BRUSH,
+    CONSUMABLE_SILVER_ION,
+    CONSUMABLE_SQUEEGEE,
+    CONSUMABLE_TANK_FILTER,
     DOMAIN,
+    INPUT_CLEANING_MODE,
     INPUT_CLEANING_SEQUENCE,
+    INPUT_CONSUMABLE,
+    INPUT_FILE_URL,
+    INPUT_KEY,
     INPUT_LANGUAGE_ID,
     INPUT_LINE,
     INPUT_MAP_ID,
     INPUT_MAP_NAME,
-    INPUT_FILE_URL,
-    INPUT_RECOVERY_MAP_INDEX,
     INPUT_MD5,
+    INPUT_OBSTACLE_IGNORED,
+    INPUT_PATHWAY_ARRAY,
+    INPUT_POINTS,
+    INPUT_RECOVERY_MAP_INDEX,
     INPUT_REPEATS,
-    INPUT_CLEANING_MODE,
     INPUT_ROTATION,
     INPUT_SEGMENT,
     INPUT_SEGMENT_ID,
     INPUT_SEGMENT_NAME,
     INPUT_SEGMENTS_ARRAY,
-    INPUT_SIZE,
-    INPUT_URL,
-    INPUT_VELOCITY,
-    INPUT_WALL_ARRAY,
-    INPUT_ZONE,
-    INPUT_ZONE_ARRAY,
-    INPUT_CONSUMABLE,
-    INPUT_POINTS,
     INPUT_SHORTCUT_ID,
     INPUT_SHORTCUT_NAME,
-    INPUT_PATHWAY_ARRAY,
+    INPUT_SIZE,
+    INPUT_URL,
+    INPUT_VALUE,
+    INPUT_VELOCITY,
+    INPUT_WALL_ARRAY,
     INPUT_X,
     INPUT_Y,
-    INPUT_OBSTACLE_IGNORED,
-    INPUT_KEY,
-    INPUT_VALUE,
-    SERVICE_CLEAN_ZONE,
+    INPUT_ZONE,
+    INPUT_ZONE_ARRAY,
+    SERVICE_BACKUP_MAP,
+    SERVICE_CALL_ACTION,
     SERVICE_CLEAN_SEGMENT,
     SERVICE_CLEAN_SPOT,
-    SERVICE_GOTO,
+    SERVICE_CLEAN_ZONE,
+    SERVICE_DELETE_MAP,
+    SERVICE_DISCARD_TEMPORARY_MAP,
     SERVICE_FOLLOW_PATH,
+    SERVICE_GOTO,
     SERVICE_INSTALL_VOICE_PACK,
     SERVICE_MERGE_SEGMENTS,
     SERVICE_MOVE_REMOTE_CONTROL_STEP,
     SERVICE_RENAME_MAP,
     SERVICE_RENAME_SEGMENT,
-    SERVICE_SET_PROPERTY,
-    SERVICE_CALL_ACTION,
+    SERVICE_RENAME_SHORTCUT,
+    SERVICE_REPLACE_TEMPORARY_MAP,
     SERVICE_REQUEST_MAP,
-    SERVICE_SELECT_MAP,
-    SERVICE_DELETE_MAP,
+    SERVICE_RESET_CONSUMABLE,
     SERVICE_RESTORE_MAP,
     SERVICE_RESTORE_MAP_FROM_FILE,
-    SERVICE_BACKUP_MAP,
+    SERVICE_SAVE_TEMPORARY_MAP,
+    SERVICE_SELECT_MAP,
     SERVICE_SET_CLEANING_SEQUENCE,
     SERVICE_SET_CUSTOM_CLEANING,
-    SERVICE_SET_RESTRICTED_ZONE,
+    SERVICE_SET_OBSTACLE_IGNORE,
     SERVICE_SET_PATHWAY,
     SERVICE_SET_PREDEFINED_POINTS,
-    SERVICE_SPLIT_SEGMENTS,
-    SERVICE_SAVE_TEMPORARY_MAP,
-    SERVICE_DISCARD_TEMPORARY_MAP,
-    SERVICE_REPLACE_TEMPORARY_MAP,
-    SERVICE_RESET_CONSUMABLE,
-    SERVICE_RENAME_SHORTCUT,
-    SERVICE_SET_OBSTACLE_IGNORE,
+    SERVICE_SET_PROPERTY,
+    SERVICE_SET_RESTRICTED_ZONE,
     SERVICE_SET_ROUTER_POSITION,
-    CONSUMABLE_BLADES,
-    CONSUMABLE_SIDE_BRUSH,
-    CONSUMABLE_FILTER,
-    CONSUMABLE_TANK_FILTER,
-    CONSUMABLE_SENSOR,
-    CONSUMABLE_SILVER_ION,
-    CONSUMABLE_LENSBRUSH,
-    CONSUMABLE_SQUEEGEE,
+    SERVICE_SPLIT_SEGMENTS,
 )
+from .coordinator import DreameMowerDataUpdateCoordinator
+from .dreame import (
+    DreameMowerAction,
+    DreameMowerState,
+)
+from .dreame.const import STATE_UNKNOWN
+from .entity import DreameMowerEntity
+from .recorder import MOWER_UNRECORDED_ATTRIBUTES
 
 PARALLEL_UPDATES = 1
 

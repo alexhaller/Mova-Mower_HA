@@ -8,10 +8,10 @@ from datetime import UTC, datetime, timedelta
 from typing import Final
 
 from homeassistant.components.camera import (
-    Camera,
-    CameraEntityDescription,
     ENTITY_ID_FORMAT,
     TOKEN_CHANGE_INTERVAL,
+    Camera,
+    CameraEntityDescription,
 )
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import STATE_UNAVAILABLE
@@ -20,8 +20,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, LOGGER
 from .coordinator import DreameMowerDataUpdateCoordinator
-from .entity import DreameMowerEntity, DreameMowerEntityDescription
 from .dreame.map_app import fetch_app_map_png
+from .entity import DreameMowerEntity, DreameMowerEntityDescription
 
 PARALLEL_UPDATES = 0
 
@@ -108,7 +108,7 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
     @callback
     def _handle_coordinator_update(self) -> None:
         if self.device.available and self._state == STATE_UNAVAILABLE:
-            self._state = datetime.now()
+            self._state = datetime.now(UTC)
             self.async_write_ha_state()
         elif not self.device.available and self._state != STATE_UNAVAILABLE:
             self._state = STATE_UNAVAILABLE
@@ -132,10 +132,10 @@ class DreameMowerCameraEntity(DreameMowerEntity, Camera):
                 )
                 self._app_map_cache.store(image)
                 if self._state == STATE_UNAVAILABLE:
-                    self._state = datetime.now()
+                    self._state = datetime.now(UTC)
                     self.async_write_ha_state()
                 return image
-            except Exception as err:
+            except Exception as err:  # noqa: BLE001 — a stale map must never fail the camera
                 LOGGER.debug("App-action map fetch failed: %s", err)
                 return None
 

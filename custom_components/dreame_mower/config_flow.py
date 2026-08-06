@@ -1,20 +1,13 @@
 """Config flow for Dremae Mower."""
 
 from __future__ import annotations
-from typing import Any, Final
+
 import re
-import voluptuous as vol
-import homeassistant.helpers.config_validation as cv
 from collections.abc import Mapping
-from homeassistant.const import (
-    CONF_NAME,
-    CONF_HOST,
-    CONF_TOKEN,
-    CONF_PASSWORD,
-    CONF_USERNAME,
-)
-from homeassistant.core import callback
-from homeassistant.helpers.device_registry import format_mac
+from typing import Any, Final
+
+import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -22,28 +15,36 @@ from homeassistant.config_entries import (
     ConfigFlowResult,
     OptionsFlow,
 )
-
-from .dreame import DreameMowerProtocol, MAP_COLOR_SCHEME_LIST, MAP_ICON_SET_LIST
+from homeassistant.const import (
+    CONF_HOST,
+    CONF_NAME,
+    CONF_PASSWORD,
+    CONF_TOKEN,
+    CONF_USERNAME,
+)
+from homeassistant.core import callback
+from homeassistant.helpers.device_registry import format_mac
 
 from .const import (
-    DOMAIN,
-    CONF_NOTIFY,
-    CONF_COLOR_SCHEME,
-    CONF_ICON_SET,
-    CONF_COUNTRY,
-    CONF_TYPE,
     CONF_ACCOUNT_TYPE,
-    CONF_MAC,
+    CONF_COLOR_SCHEME,
+    CONF_COUNTRY,
     CONF_DID,
-    CONF_MAP_OBJECTS,
-    CONF_PREFER_CLOUD,
+    CONF_ICON_SET,
     CONF_LOW_RESOLUTION,
+    CONF_MAC,
+    CONF_MAP_OBJECTS,
+    CONF_NOTIFY,
+    CONF_PREFER_CLOUD,
     CONF_SQUARE,
-    NOTIFICATION,
+    CONF_TYPE,
+    DOMAIN,
     MAP_OBJECTS,
-    NOTIFICATION_ID_2FA_LOGIN,
+    NOTIFICATION,
     NOTIFICATION_2FA_LOGIN,
+    NOTIFICATION_ID_2FA_LOGIN,
 )
+from .dreame import MAP_COLOR_SCHEME_LIST, MAP_ICON_SET_LIST, DreameMowerProtocol
 
 DREAME_MODELS = [
     "dreame.mower.",
@@ -244,7 +245,7 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
                     if info:
                         self.mac = info["mac"]
                         self.model = info["model"]
-            except Exception:
+            except Exception:  # noqa: BLE001 — any failure here means we cannot reach the device
                 errors["base"] = "cannot_connect"
             else:
                 if self.mac:
@@ -281,9 +282,10 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
     async def async_step_local(
         self,
         user_input: dict[str, Any] | None = None,
-        errors: dict[str, str] = {},
+        errors: dict[str, str] | None = None,
     ) -> ConfigFlowResult:
         """Handle the initial step."""
+        errors = {} if errors is None else errors
 
         if user_input is not None:
             self._async_abort_entries_match(user_input)
@@ -310,9 +312,10 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
     async def async_step_mi(
         self,
         user_input: dict[str, Any] | None = None,
-        errors: dict[str, str] = {},
+        errors: dict[str, str] | None = None,
     ) -> ConfigFlowResult:
         """Configure a mi mower device through the Miio Cloud."""
+        errors = {} if errors is None else errors
         placeholders: dict[str, str] = {}
         if user_input is not None:
             self.account_type = "mi"
@@ -384,7 +387,7 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
 
                         if self.devices:
                             if len(self.devices) == 1:
-                                self.extract_info(list(self.devices.values())[0])
+                                self.extract_info(next(iter(self.devices.values())))
                                 return await self.async_step_connect()
                             return await self.async_step_devices()
 
@@ -414,9 +417,10 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
     async def async_step_dreame(
         self,
         user_input: dict[str, Any] | None = None,
-        errors: dict[str, str] = {},
+        errors: dict[str, str] | None = None,
     ) -> ConfigFlowResult:
         """Configure a dreame mower device through the Miio Cloud."""
+        errors = {} if errors is None else errors
         placeholders: dict[str, str] = {}
         if user_input is not None:
             self.account_type = "dreame"
@@ -475,7 +479,7 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
 
                         if self.devices:
                             if len(self.devices) == 1:
-                                self.extract_info(list(self.devices.values())[0])
+                                self.extract_info(next(iter(self.devices.values())))
                                 return await self.async_step_connect()
                             return await self.async_step_devices()
 
@@ -501,9 +505,10 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
     async def async_step_mova(
         self,
         user_input: dict[str, Any] | None = None,
-        errors: dict[str, str] = {},
+        errors: dict[str, str] | None = None,
     ) -> ConfigFlowResult:
         """Configure a mova mower device through the Miio Cloud."""
+        errors = {} if errors is None else errors
         placeholders: dict[str, str] = {}
         if user_input is not None:
             self.account_type = "mova"
@@ -561,7 +566,7 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
 
                         if self.devices:
                             if len(self.devices) == 1:
-                                self.extract_info(list(self.devices.values())[0])
+                                self.extract_info(next(iter(self.devices.values())))
                                 return await self.async_step_connect()
                             return await self.async_step_devices()
 

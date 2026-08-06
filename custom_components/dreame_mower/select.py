@@ -4,57 +4,54 @@
 from __future__ import annotations
 
 import copy
-from enum import IntEnum
-import voluptuous as vol
 from collections.abc import Callable
 from dataclasses import dataclass
+from enum import IntEnum
 from functools import partial
 
+import voluptuous as vol
 from homeassistant.components.select import (
     ENTITY_ID_FORMAT,
     SelectEntity,
     SelectEntityDescription,
 )
-
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import STATE_UNKNOWN, STATE_UNAVAILABLE
+from homeassistant.const import STATE_UNAVAILABLE, STATE_UNKNOWN
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import EntityCategory
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers import entity_platform, entity_registry
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import (
     DOMAIN,
-    UNIT_TIMES,
     INPUT_CYCLE,
-    SERVICE_SELECT_NEXT,
-    SERVICE_SELECT_PREVIOUS,
     SERVICE_SELECT_FIRST,
     SERVICE_SELECT_LAST,
+    SERVICE_SELECT_NEXT,
+    SERVICE_SELECT_PREVIOUS,
+    UNIT_TIMES,
 )
-
 from .coordinator import DreameMowerDataUpdateCoordinator
-from .entity import (
-    DreameMowerEntity,
-    DreameMowerEntityDescription,
-)
-
-from .dreame.const import ATTR_VALUE, STATE_NOT_SET
 from .dreame import (
-    DreameMowerProperty,
-    DreameMowerAutoSwitchProperty,
-    DreameMowerCleaningMode,
-    DreameMowerCleaningRoute,
-    DreameMowerCleanGenius,
-    DreameMowerFloorMaterial,
-    DreameMowerFloorMaterialDirection,
-    DreameMowerSegmentVisibility,
     CLEANING_MODE_CODE_TO_NAME,
+    CLEANING_ROUTE_TO_NAME,
     FLOOR_MATERIAL_CODE_TO_NAME,
     FLOOR_MATERIAL_DIRECTION_CODE_TO_NAME,
     SEGMENT_VISIBILITY_CODE_TO_NAME,
-    CLEANING_ROUTE_TO_NAME,
+    DreameMowerAutoSwitchProperty,
+    DreameMowerCleanGenius,
+    DreameMowerCleaningMode,
+    DreameMowerCleaningRoute,
+    DreameMowerFloorMaterial,
+    DreameMowerFloorMaterialDirection,
+    DreameMowerProperty,
+    DreameMowerSegmentVisibility,
+)
+from .dreame.const import ATTR_VALUE, STATE_NOT_SET
+from .entity import (
+    DreameMowerEntity,
+    DreameMowerEntityDescription,
 )
 
 PARALLEL_UPDATES = 1
@@ -419,8 +416,8 @@ def async_update_segment_selects(
 ) -> None:
     new_ids = []
     if coordinator.device and coordinator.device.status.map_list:
-        for k, v in coordinator.device.status.map_data_list.items():
-            for j, s in v.segments.items():
+        for v in coordinator.device.status.map_data_list.values():
+            for j in v.segments:
                 if j not in new_ids:
                     new_ids.append(j)
 

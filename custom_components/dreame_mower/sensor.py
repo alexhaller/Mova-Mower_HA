@@ -4,7 +4,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from datetime import datetime
 
 from homeassistant.components.sensor import (
     ENTITY_ID_FORMAT,
@@ -14,28 +13,27 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.util import dt as dt_util
 
 from .const import (
     DOMAIN,
-    UNIT_MINUTES,
-    UNIT_HOURS,
-    UNIT_PERCENT,
     UNIT_AREA,
-    UNIT_TIMES,
     UNIT_DAYS,
+    UNIT_HOURS,
+    UNIT_MINUTES,
+    UNIT_PERCENT,
+    UNIT_TIMES,
 )
+from .coordinator import DreameMowerDataUpdateCoordinator
 from .dreame import (
     DreameMowerProperty,
     DreameMowerRelocationStatus,
     DreameMowerStreamStatus,
 )
 from .dreame.const import ATTR_VALUE
-
-from .coordinator import DreameMowerDataUpdateCoordinator
 from .entity import DreameMowerEntity, DreameMowerEntityDescription
 
 PARALLEL_UPDATES = 0
@@ -258,9 +256,7 @@ SENSORS: tuple[DreameMowerSensorEntityDescription, ...] = (
         icon="mdi:calendar-start",
         device_class=SensorDeviceClass.TIMESTAMP,
         entity_category=EntityCategory.DIAGNOSTIC,
-        value_fn=lambda value, device: datetime.fromtimestamp(value).replace(
-            tzinfo=datetime.now().astimezone().tzinfo
-        ),
+        value_fn=lambda value, device: dt_util.utc_from_timestamp(value),
         # entity_registry_enabled_default=False,
     ),
     DreameMowerSensorEntityDescription(
