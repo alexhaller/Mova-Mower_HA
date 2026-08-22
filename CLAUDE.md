@@ -8,8 +8,10 @@ Home Assistant custom integration for Dreame/Mova robotic lawn mowers. Communica
 
 - GitHub: https://github.com/alexhaller/Mova-Mower_HA
 - Domain: `dreame_mower`
-- pip-audit packages: `pybase64>=1.4.3`, `pycryptodome>=3.23.0`, `python-miio>=0.5.12`
-  (Pillow is a Home Assistant core dependency and is deliberately not listed)
+- pip-audit packages: `python-miio>=0.5.12` (the current release; no newer one exists)
+  Deliberately not listed: `Pillow` and `cryptography` are Home Assistant core
+  dependencies, and `pybase64`/`pycryptodome` are not imported anywhere — the SDK
+  uses the stdlib `base64` and `cryptography`.
 
 ## Commands
 

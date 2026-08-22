@@ -14,14 +14,14 @@ jobs:
     name: Hassfest
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: home-assistant/actions/hassfest@master
 
   hacs:
     name: HACS
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - uses: hacs/action@main
         with:
           category: integration
@@ -30,9 +30,9 @@ jobs:
     name: Lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.14"
 
@@ -40,7 +40,7 @@ jobs:
       # which silently turns a green build red. Bump them deliberately.
       - name: Install dependencies
         run: |
-          pip install ruff==0.16.1 mypy==2.3.0 pip-audit homeassistant
+          pip install ruff==0.16.4 mypy==2.3.1 pip-audit homeassistant
 
       - name: Ruff lint
         run: ruff check .
