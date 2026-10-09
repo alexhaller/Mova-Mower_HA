@@ -1,3 +1,15 @@
+## [2.0.0](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.1.6...v2.0.0) (2026-10-09)
+
+### ⚠ BREAKING CHANGES
+
+* requires Home Assistant 2026.9.0 or later.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+
+### Features
+
+* build schemas with probatio and require Home Assistant 2026.9 ([11a2094](https://github.com/alexhaller/Mova-Mower_HA/commit/11a2094c70fdf9066aea8303d2253f94b7787bcd))
+
 ## [1.1.6](https://github.com/alexhaller/Mova-Mower_HA/compare/v1.1.5...v1.1.6) (2026-08-22)
 
 ### Bug Fixes
