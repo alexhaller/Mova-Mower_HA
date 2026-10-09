@@ -11,7 +11,10 @@ Home Assistant custom integration for Dreame/Mova robotic lawn mowers. Communica
 - pip-audit packages: `python-miio>=0.5.12` (the current release; no newer one exists)
   Deliberately not listed: `Pillow` and `cryptography` are Home Assistant core
   dependencies, and `pybase64`/`pycryptodome` are not imported anywhere — the SDK
-  uses the stdlib `base64` and `cryptography`.
+  uses the stdlib `base64` and `cryptography`. `paho-mqtt` (imported by
+  `dreame/protocol.py`) is not listed either: HA's image installs it with
+  `requirements_all.txt` and pins it in `package_constraints.txt`, so a manifest
+  pin could only conflict with HA's own MQTT integration.
 
 ## Commands
 
