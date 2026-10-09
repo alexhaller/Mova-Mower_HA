@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 from functools import partial
 
-import voluptuous as vol
+import probatio
 from homeassistant.components.select import (
     ENTITY_ID_FORMAT,
     SelectEntity,
@@ -386,12 +386,12 @@ async def async_setup_entry(
     platform = entity_platform.current_platform.get()
     platform.async_register_entity_service(
         SERVICE_SELECT_NEXT,
-        {vol.Optional(INPUT_CYCLE, default=True): bool},
+        {probatio.Optional(INPUT_CYCLE, default=True): bool},
         DreameMowerSelectEntity.async_next.__name__,
     )
     platform.async_register_entity_service(
         SERVICE_SELECT_PREVIOUS,
-        {vol.Optional(INPUT_CYCLE, default=True): bool},
+        {probatio.Optional(INPUT_CYCLE, default=True): bool},
         DreameMowerSelectEntity.async_previous.__name__,
     )
     platform.async_register_entity_service(

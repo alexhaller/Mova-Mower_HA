@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from typing import Any, Final
 
 import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
+import probatio
 from homeassistant.components import persistent_notification
 from homeassistant.config_entries import (
     ConfigEntry,
@@ -84,29 +84,33 @@ class DreameMowerOptionsFlowHandler(OptionsFlow):
             else:
                 notify = []
 
-        data_schema = vol.Schema(
-            {vol.Required(CONF_NOTIFY, default=notify): cv.multi_select(NOTIFICATION)}
+        data_schema = probatio.Schema(
+            {
+                probatio.Required(CONF_NOTIFY, default=notify): cv.multi_select(
+                    NOTIFICATION
+                )
+            }
         )
         if data[CONF_USERNAME]:
             data_schema = data_schema.extend(
                 {
-                    vol.Required(
+                    probatio.Required(
                         CONF_COLOR_SCHEME, default=options[CONF_COLOR_SCHEME]
-                    ): vol.In(list(MAP_COLOR_SCHEME_LIST.keys())),
-                    vol.Required(
+                    ): probatio.In(list(MAP_COLOR_SCHEME_LIST.keys())),
+                    probatio.Required(
                         CONF_ICON_SET,
                         default=options.get(
                             CONF_ICON_SET, next(iter(MAP_ICON_SET_LIST))
                         ),
-                    ): vol.In(list(MAP_ICON_SET_LIST.keys())),
-                    vol.Required(
+                    ): probatio.In(list(MAP_ICON_SET_LIST.keys())),
+                    probatio.Required(
                         CONF_MAP_OBJECTS,
                         default=options.get(CONF_MAP_OBJECTS, list(MAP_OBJECTS.keys())),
                     ): cv.multi_select(MAP_OBJECTS),
-                    vol.Required(
+                    probatio.Required(
                         CONF_SQUARE, default=options.get(CONF_SQUARE, False)
                     ): bool,
-                    vol.Required(
+                    probatio.Required(
                         CONF_LOW_RESOLUTION,
                         default=options.get(CONF_LOW_RESOLUTION, False),
                     ): bool,
@@ -115,7 +119,7 @@ class DreameMowerOptionsFlowHandler(OptionsFlow):
             if data.get(CONF_ACCOUNT_TYPE, "mi") == "mi":
                 data_schema = data_schema.extend(
                     {
-                        vol.Required(
+                        probatio.Required(
                             CONF_PREFER_CLOUD,
                             default=options.get(CONF_PREFER_CLOUD, False),
                         ): bool,
@@ -175,9 +179,9 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_TYPE, default=DREAMEHOME): vol.In(
+                    probatio.Required(CONF_TYPE, default=DREAMEHOME): probatio.In(
                         [DREAMEHOME, MOVAHOME, LOCAL]
                     )
                 }
@@ -297,10 +301,10 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
 
         return self.async_show_form(
             step_id="local",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_HOST, default=self.host): str,
-                    vol.Required(CONF_TOKEN, default=self.token): str,
+                    probatio.Required(CONF_HOST, default=self.host): str,
+                    probatio.Required(CONF_TOKEN, default=self.token): str,
                 }
             ),
             description_placeholders={
@@ -397,14 +401,16 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
 
         return self.async_show_form(
             step_id="mi",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_USERNAME, default=self.username): str,
-                    vol.Required(CONF_PASSWORD, default=self.password): str,
-                    vol.Required(CONF_COUNTRY, default=self.country): vol.In(
+                    probatio.Required(CONF_USERNAME, default=self.username): str,
+                    probatio.Required(CONF_PASSWORD, default=self.password): str,
+                    probatio.Required(CONF_COUNTRY, default=self.country): probatio.In(
                         ["cn", "de", "us", "ru", "tw", "sg", "in", "i2"]
                     ),
-                    vol.Required(CONF_PREFER_CLOUD, default=self.prefer_cloud): bool,
+                    probatio.Required(
+                        CONF_PREFER_CLOUD, default=self.prefer_cloud
+                    ): bool,
                 }
             ),
             description_placeholders={
@@ -489,11 +495,11 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
 
         return self.async_show_form(
             step_id="dreame",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_USERNAME, default=self.username): str,
-                    vol.Required(CONF_PASSWORD, default=self.password): str,
-                    vol.Required(CONF_COUNTRY, default=self.country): vol.In(
+                    probatio.Required(CONF_USERNAME, default=self.username): str,
+                    probatio.Required(CONF_PASSWORD, default=self.password): str,
+                    probatio.Required(CONF_COUNTRY, default=self.country): probatio.In(
                         ["cn", "eu", "us", "ru", "sg"]
                     ),
                 }
@@ -576,11 +582,11 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
 
         return self.async_show_form(
             step_id="mova",
-            data_schema=vol.Schema(
+            data_schema=probatio.Schema(
                 {
-                    vol.Required(CONF_USERNAME, default=self.username): str,
-                    vol.Required(CONF_PASSWORD, default=self.password): str,
-                    vol.Required(CONF_COUNTRY, default=self.country): vol.In(
+                    probatio.Required(CONF_USERNAME, default=self.username): str,
+                    probatio.Required(CONF_PASSWORD, default=self.password): str,
+                    probatio.Required(CONF_COUNTRY, default=self.country): probatio.In(
                         ["cn", "eu", "us", "ru", "sg"]
                     ),
                 }
@@ -600,8 +606,8 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
 
         return self.async_show_form(
             step_id="devices",
-            data_schema=vol.Schema(
-                {vol.Required("devices"): vol.In(list(self.devices))}
+            data_schema=probatio.Schema(
+                {probatio.Required("devices"): probatio.In(list(self.devices))}
             ),
             errors=errors,
         )
@@ -639,10 +645,10 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
                 },
             )
 
-        data_schema = vol.Schema(
+        data_schema = probatio.Schema(
             {
-                vol.Required(CONF_NAME, default=self.name): str,
-                vol.Required(
+                probatio.Required(CONF_NAME, default=self.name): str,
+                probatio.Required(
                     CONF_NOTIFY, default=list(NOTIFICATION.keys())
                 ): cv.multi_select(NOTIFICATION),
             }
@@ -659,17 +665,17 @@ class DreameMowerFlowHandler(ConfigFlow, domain=DOMAIN):  # type: ignore[call-ar
         if self.account_type != "local":
             data_schema = data_schema.extend(
                 {
-                    vol.Required(
+                    probatio.Required(
                         CONF_COLOR_SCHEME, default=default_color_scheme
-                    ): vol.In(list(MAP_COLOR_SCHEME_LIST.keys())),
-                    vol.Required(CONF_ICON_SET, default=default_icon_set): vol.In(
-                        list(MAP_ICON_SET_LIST.keys())
-                    ),
-                    vol.Required(
+                    ): probatio.In(list(MAP_COLOR_SCHEME_LIST.keys())),
+                    probatio.Required(
+                        CONF_ICON_SET, default=default_icon_set
+                    ): probatio.In(list(MAP_ICON_SET_LIST.keys())),
+                    probatio.Required(
                         CONF_MAP_OBJECTS, default=default_objects
                     ): cv.multi_select(MAP_OBJECTS),
-                    vol.Required(CONF_SQUARE, default=False): bool,
-                    vol.Required(CONF_LOW_RESOLUTION, default=False): bool,
+                    probatio.Required(CONF_SQUARE, default=False): bool,
+                    probatio.Required(CONF_LOW_RESOLUTION, default=False): bool,
                 }
             )
 

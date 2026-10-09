@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Final
 
-import voluptuous as vol
+import probatio
 from homeassistant.components.lawn_mower import (
     LawnMowerActivity,
     LawnMowerEntity,
@@ -156,9 +156,9 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_PROPERTY,
         {
-            vol.Required(INPUT_KEY): cv.string,
-            vol.Optional(INPUT_VALUE): vol.Any(
-                vol.Coerce(int), vol.Coerce(str), vol.Coerce(bool)
+            probatio.Required(INPUT_KEY): cv.string,
+            probatio.Optional(INPUT_VALUE): probatio.Any(
+                probatio.Coerce(int), probatio.Coerce(str), probatio.Coerce(bool)
             ),
         },
         DreameMower.async_set_property.__name__,
@@ -166,7 +166,7 @@ async def async_setup_entry(
 
     platform.async_register_entity_service(
         SERVICE_CALL_ACTION,
-        {vol.Required(INPUT_KEY): cv.string},
+        {probatio.Required(INPUT_KEY): cv.string},
         DreameMower.async_call_action.__name__,
     )
 
@@ -179,7 +179,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SELECT_MAP,
         {
-            vol.Required(INPUT_MAP_ID): cv.positive_int,
+            probatio.Required(INPUT_MAP_ID): cv.positive_int,
         },
         DreameMower.async_select_map.__name__,
     )
@@ -187,7 +187,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_DELETE_MAP,
         {
-            vol.Optional(INPUT_MAP_ID): cv.positive_int,
+            probatio.Optional(INPUT_MAP_ID): cv.positive_int,
         },
         DreameMower.async_delete_map.__name__,
     )
@@ -207,7 +207,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_REPLACE_TEMPORARY_MAP,
         {
-            vol.Optional(INPUT_MAP_ID): cv.positive_int,
+            probatio.Optional(INPUT_MAP_ID): cv.positive_int,
         },
         DreameMower.async_replace_temporary_map.__name__,
     )
@@ -215,27 +215,29 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_CLEAN_ZONE,
         {
-            vol.Required(INPUT_ZONE): vol.Any(
+            probatio.Required(INPUT_ZONE): probatio.Any(
                 [
-                    vol.ExactSequence(
+                    probatio.ExactSequence(
                         [
-                            vol.Coerce(int),
-                            vol.Coerce(int),
-                            vol.Coerce(int),
-                            vol.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
                         ]
                     )
                 ],
-                vol.ExactSequence(
+                probatio.ExactSequence(
                     [
-                        vol.Coerce(int),
-                        vol.Coerce(int),
-                        vol.Coerce(int),
-                        vol.Coerce(int),
+                        probatio.Coerce(int),
+                        probatio.Coerce(int),
+                        probatio.Coerce(int),
+                        probatio.Coerce(int),
                     ]
                 ),
             ),
-            vol.Optional(INPUT_REPEATS): vol.Any(vol.Coerce(int), [vol.Coerce(int)]),
+            probatio.Optional(INPUT_REPEATS): probatio.Any(
+                probatio.Coerce(int), [probatio.Coerce(int)]
+            ),
         },
         DreameMower.async_clean_zone.__name__,
     )
@@ -243,10 +245,12 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_CLEAN_SEGMENT,
         {
-            vol.Required(INPUT_SEGMENTS_ARRAY): vol.Any(
-                vol.Coerce(int), [vol.Coerce(int)]
+            probatio.Required(INPUT_SEGMENTS_ARRAY): probatio.Any(
+                probatio.Coerce(int), [probatio.Coerce(int)]
             ),
-            vol.Optional(INPUT_REPEATS): vol.Any(vol.Coerce(int), [vol.Coerce(int)]),
+            probatio.Optional(INPUT_REPEATS): probatio.Any(
+                probatio.Coerce(int), [probatio.Coerce(int)]
+            ),
         },
         DreameMower.async_clean_segment.__name__,
     )
@@ -254,23 +258,25 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_CLEAN_SPOT,
         {
-            vol.Required(INPUT_POINTS): vol.Any(
+            probatio.Required(INPUT_POINTS): probatio.Any(
                 [
-                    vol.ExactSequence(
+                    probatio.ExactSequence(
                         [
-                            vol.Coerce(int),
-                            vol.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
                         ]
                     )
                 ],
-                vol.ExactSequence(
+                probatio.ExactSequence(
                     [
-                        vol.Coerce(int),
-                        vol.Coerce(int),
+                        probatio.Coerce(int),
+                        probatio.Coerce(int),
                     ]
                 ),
             ),
-            vol.Optional(INPUT_REPEATS): vol.Any(vol.Coerce(int), [vol.Coerce(int)]),
+            probatio.Optional(INPUT_REPEATS): probatio.Any(
+                probatio.Coerce(int), [probatio.Coerce(int)]
+            ),
         },
         DreameMower.async_clean_spot.__name__,
     )
@@ -278,8 +284,8 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_GOTO,
         {
-            vol.Required(INPUT_X): vol.All(vol.Coerce(int)),
-            vol.Required(INPUT_Y): vol.All(vol.Coerce(int)),
+            probatio.Required(INPUT_X): probatio.All(probatio.Coerce(int)),
+            probatio.Required(INPUT_Y): probatio.All(probatio.Coerce(int)),
         },
         DreameMower.async_goto.__name__,
     )
@@ -287,13 +293,13 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_FOLLOW_PATH,
         {
-            vol.Optional(INPUT_POINTS): vol.All(
+            probatio.Optional(INPUT_POINTS): probatio.All(
                 list,
                 [
-                    vol.ExactSequence(
+                    probatio.ExactSequence(
                         [
-                            vol.Coerce(int),
-                            vol.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
                         ]
                     )
                 ],
@@ -305,28 +311,28 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_RESTRICTED_ZONE,
         {
-            vol.Optional(INPUT_WALL_ARRAY): vol.All(
+            probatio.Optional(INPUT_WALL_ARRAY): probatio.All(
                 list,
                 [
-                    vol.ExactSequence(
+                    probatio.ExactSequence(
                         [
-                            vol.Coerce(int),
-                            vol.Coerce(int),
-                            vol.Coerce(int),
-                            vol.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
                         ]
                     )
                 ],
             ),
-            vol.Optional(INPUT_ZONE_ARRAY): vol.All(
+            probatio.Optional(INPUT_ZONE_ARRAY): probatio.All(
                 list,
                 [
-                    vol.ExactSequence(
+                    probatio.ExactSequence(
                         [
-                            vol.Coerce(int),
-                            vol.Coerce(int),
-                            vol.Coerce(int),
-                            vol.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
                         ]
                     )
                 ],
@@ -338,15 +344,15 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_PATHWAY,
         {
-            vol.Optional(INPUT_PATHWAY_ARRAY): vol.All(
+            probatio.Optional(INPUT_PATHWAY_ARRAY): probatio.All(
                 list,
                 [
-                    vol.ExactSequence(
+                    probatio.ExactSequence(
                         [
-                            vol.Coerce(int),
-                            vol.Coerce(int),
-                            vol.Coerce(int),
-                            vol.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
                         ]
                     )
                 ],
@@ -358,13 +364,13 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_PREDEFINED_POINTS,
         {
-            vol.Optional(INPUT_POINTS): vol.All(
+            probatio.Optional(INPUT_POINTS): probatio.All(
                 list,
                 [
-                    vol.ExactSequence(
+                    probatio.ExactSequence(
                         [
-                            vol.Coerce(int),
-                            vol.Coerce(int),
+                            probatio.Coerce(int),
+                            probatio.Coerce(int),
                         ]
                     )
                 ],
@@ -376,13 +382,13 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_MOVE_REMOTE_CONTROL_STEP,
         {
-            vol.Required(INPUT_VELOCITY): vol.All(
-                vol.Coerce(int), vol.Clamp(min=-600, max=600)
+            probatio.Required(INPUT_VELOCITY): probatio.All(
+                probatio.Coerce(int), probatio.Clamp(min=-600, max=600)
             ),
-            vol.Required(INPUT_ROTATION): vol.All(
-                vol.Coerce(int), vol.Clamp(min=-360, max=360)
+            probatio.Required(INPUT_ROTATION): probatio.All(
+                probatio.Coerce(int), probatio.Clamp(min=-360, max=360)
             ),
-            vol.Optional("prompt"): cv.boolean,
+            probatio.Optional("prompt"): cv.boolean,
         },
         DreameMower.async_remote_control_move_step.__name__,
     )
@@ -390,10 +396,10 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_INSTALL_VOICE_PACK,
         {
-            vol.Required(INPUT_LANGUAGE_ID): cv.string,
-            vol.Required(INPUT_URL): cv.url,
-            vol.Required(INPUT_MD5): cv.string,
-            vol.Required(INPUT_SIZE): cv.positive_int,
+            probatio.Required(INPUT_LANGUAGE_ID): cv.string,
+            probatio.Required(INPUT_URL): cv.url,
+            probatio.Required(INPUT_MD5): cv.string,
+            probatio.Required(INPUT_SIZE): cv.positive_int,
         },
         DreameMower.async_install_voice_pack.__name__,
     )
@@ -401,8 +407,8 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_RENAME_MAP,
         {
-            vol.Required(INPUT_MAP_ID): cv.positive_int,
-            vol.Required(INPUT_MAP_NAME): cv.string,
+            probatio.Required(INPUT_MAP_ID): cv.positive_int,
+            probatio.Required(INPUT_MAP_NAME): cv.string,
         },
         DreameMower.async_rename_map.__name__,
     )
@@ -410,8 +416,8 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_RESTORE_MAP,
         {
-            vol.Required(INPUT_RECOVERY_MAP_INDEX): cv.positive_int,
-            vol.Optional(INPUT_MAP_ID): cv.positive_int,
+            probatio.Required(INPUT_RECOVERY_MAP_INDEX): cv.positive_int,
+            probatio.Optional(INPUT_MAP_ID): cv.positive_int,
         },
         DreameMower.async_restore_map.__name__,
     )
@@ -419,8 +425,8 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_RESTORE_MAP_FROM_FILE,
         {
-            vol.Required(INPUT_FILE_URL): cv.url,
-            vol.Optional(INPUT_MAP_ID): cv.positive_int,
+            probatio.Required(INPUT_FILE_URL): cv.url,
+            probatio.Optional(INPUT_MAP_ID): cv.positive_int,
         },
         DreameMower.async_restore_map_from_file.__name__,
     )
@@ -428,7 +434,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_BACKUP_MAP,
         {
-            vol.Optional(INPUT_MAP_ID): cv.positive_int,
+            probatio.Optional(INPUT_MAP_ID): cv.positive_int,
         },
         DreameMower.async_backup_map.__name__,
     )
@@ -436,8 +442,10 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_MERGE_SEGMENTS,
         {
-            vol.Optional(INPUT_MAP_ID): cv.positive_int,
-            vol.Required(INPUT_SEGMENTS_ARRAY): vol.All([vol.Coerce(int)]),
+            probatio.Optional(INPUT_MAP_ID): cv.positive_int,
+            probatio.Required(INPUT_SEGMENTS_ARRAY): probatio.All(
+                [probatio.Coerce(int)]
+            ),
         },
         DreameMower.async_merge_segments.__name__,
     )
@@ -445,16 +453,16 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SPLIT_SEGMENTS,
         {
-            vol.Optional(INPUT_MAP_ID): cv.positive_int,
-            vol.Required(INPUT_SEGMENT): vol.All(vol.Coerce(int)),
-            vol.Required(INPUT_LINE): vol.All(
+            probatio.Optional(INPUT_MAP_ID): cv.positive_int,
+            probatio.Required(INPUT_SEGMENT): probatio.All(probatio.Coerce(int)),
+            probatio.Required(INPUT_LINE): probatio.All(
                 list,
-                vol.ExactSequence(
+                probatio.ExactSequence(
                     [
-                        vol.Coerce(int),
-                        vol.Coerce(int),
-                        vol.Coerce(int),
-                        vol.Coerce(int),
+                        probatio.Coerce(int),
+                        probatio.Coerce(int),
+                        probatio.Coerce(int),
+                        probatio.Coerce(int),
                     ]
                 ),
             ),
@@ -465,8 +473,8 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_RENAME_SEGMENT,
         {
-            vol.Required(INPUT_SEGMENT_ID): cv.positive_int,
-            vol.Required(INPUT_SEGMENT_NAME): cv.string,
+            probatio.Required(INPUT_SEGMENT_ID): cv.positive_int,
+            probatio.Required(INPUT_SEGMENT_NAME): cv.string,
         },
         DreameMower.async_rename_segment.__name__,
     )
@@ -474,7 +482,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_CLEANING_SEQUENCE,
         {
-            vol.Required(INPUT_CLEANING_SEQUENCE): cv.ensure_list,
+            probatio.Required(INPUT_CLEANING_SEQUENCE): cv.ensure_list,
         },
         DreameMower.async_set_cleaning_sequence.__name__,
     )
@@ -482,9 +490,9 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_CUSTOM_CLEANING,
         {
-            vol.Required(INPUT_SEGMENT_ID): cv.ensure_list,
-            vol.Required(INPUT_REPEATS): cv.ensure_list,
-            vol.Optional(INPUT_CLEANING_MODE): cv.ensure_list,
+            probatio.Required(INPUT_SEGMENT_ID): cv.ensure_list,
+            probatio.Required(INPUT_REPEATS): cv.ensure_list,
+            probatio.Optional(INPUT_CLEANING_MODE): cv.ensure_list,
         },
         DreameMower.async_set_custom_cleaning.__name__,
     )
@@ -492,7 +500,7 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_RESET_CONSUMABLE,
         {
-            vol.Required(INPUT_CONSUMABLE): vol.In(
+            probatio.Required(INPUT_CONSUMABLE): probatio.In(
                 [
                     CONSUMABLE_BLADES,
                     CONSUMABLE_SIDE_BRUSH,
@@ -511,8 +519,8 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_RENAME_SHORTCUT,
         {
-            vol.Required(INPUT_SHORTCUT_ID): cv.positive_int,
-            vol.Required(INPUT_SHORTCUT_NAME): cv.string,
+            probatio.Required(INPUT_SHORTCUT_ID): cv.positive_int,
+            probatio.Required(INPUT_SHORTCUT_NAME): cv.string,
         },
         DreameMower.async_rename_shortcut.__name__,
     )
@@ -520,9 +528,11 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_OBSTACLE_IGNORE,
         {
-            vol.Required(INPUT_X): vol.All(vol.Coerce(float)),
-            vol.Required(INPUT_Y): vol.All(vol.Coerce(float)),
-            vol.Required(INPUT_OBSTACLE_IGNORED): vol.All(vol.Coerce(bool)),
+            probatio.Required(INPUT_X): probatio.All(probatio.Coerce(float)),
+            probatio.Required(INPUT_Y): probatio.All(probatio.Coerce(float)),
+            probatio.Required(INPUT_OBSTACLE_IGNORED): probatio.All(
+                probatio.Coerce(bool)
+            ),
         },
         DreameMower.async_set_obstacle_ignore.__name__,
     )
@@ -530,8 +540,8 @@ async def async_setup_entry(
     platform.async_register_entity_service(
         SERVICE_SET_ROUTER_POSITION,
         {
-            vol.Required(INPUT_X): vol.All(vol.Coerce(int)),
-            vol.Required(INPUT_Y): vol.All(vol.Coerce(int)),
+            probatio.Required(INPUT_X): probatio.All(probatio.Coerce(int)),
+            probatio.Required(INPUT_Y): probatio.All(probatio.Coerce(int)),
         },
         DreameMower.async_set_router_position.__name__,
     )
