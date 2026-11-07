@@ -7,8 +7,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-pytest_plugins = "pytest_homeassistant_custom_component"
-
 HOST = "192.168.1.60"
 TOKEN = "0123456789abcdef0123456789abcdef"
 MAC = "AA:BB:CC:DD:EE:FF"
@@ -25,11 +23,6 @@ def cloud_device(name: str = "Lawn", did: str = "1001", mac: str = MAC) -> dict:
         "customName": name,
         "deviceInfo": {"displayName": "Mova Mower"},
     }
-
-
-@pytest.fixture(autouse=True)
-def auto_enable_custom_integrations(enable_custom_integrations: None) -> None:
-    """Enable the integration under custom_components."""
 
 
 @pytest.fixture
