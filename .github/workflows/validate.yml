@@ -40,7 +40,7 @@ jobs:
       # which silently turns a green build red. Bump them deliberately.
       - name: Install dependencies
         run: |
-          pip install ruff==0.16.4 mypy==2.3.1 pip-audit homeassistant
+          pip install ruff==0.17.4 mypy==2.4.1 pip-audit homeassistant
 
       - name: Ruff lint
         run: ruff check .

@@ -305,9 +305,11 @@ class DreameMowerDataUpdateCoordinator(DataUpdateCoordinator[DreameMowerDevice])
                 elif notification_id == NOTIFICATION_ID_CLEANING_PAUSED:
                     if NOTIFICATION_ID_INFORMATION not in self._notify:
                         return
-                elif notification_id != NOTIFICATION_ID_REPLACE_TEMPORARY_MAP:
-                    if NOTIFICATION_ID_CONSUMABLE not in self._notify:
-                        return
+                elif (
+                    notification_id != NOTIFICATION_ID_REPLACE_TEMPORARY_MAP
+                    and NOTIFICATION_ID_CONSUMABLE not in self._notify
+                ):
+                    return
 
             persistent_notification.create(
                 hass=self.hass,
